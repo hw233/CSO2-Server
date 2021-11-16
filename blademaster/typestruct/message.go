@@ -10,18 +10,18 @@ const (
 )
 
 var (
-	GAME_SERVER_ERROR                    = []byte("你与服务端的连接遭遇到不可恢复性错误，请联系服务器管理员并提供报错信息以便管理员查找和修复错误！")
+	GAME_SERVER_ERROR                    = []byte("#CSO2_ServerMessage_ServerDown")
 	GAME_LOGIN_ALREADY                   = []byte("您的账号当前已经有人登录！如果你的账号已泄露请联系管理员！")
 	GAME_LOGIN_EXIT_FORCE                = []byte("您的账号当前有人登录！您已被强制退出！")
-	GAME_LOGIN_ERROR                     = []byte("登录过程发生错误，请联系服务器管理员并提供报错信息以便管理员查找和修复错误！")
+	GAME_LOGIN_ERROR                     = []byte("#CSO2_LOGIN_ERROR")
 	GAME_ROOM_COUNT_MODE_ERROR           = []byte("无法开始游戏！请检查你的房间设置，比如是否有2人及以上或者开启bot")
-	GAME_ROOM_JOIN_ERROR                 = []byte("加入房间发生错误！")
+	GAME_ROOM_JOIN_ERROR                 = []byte("#CSO2_POPUP_ROOM_JOIN_FAILED_INVALID_GAME_IP")
 	GAME_GM_ADD_ALLWEAPONS               = []byte("所有武器已存入你的仓库!")
 	GAME_CHANNEL_MESSAGE_NOT_IN          = []byte("你未进入任何频道!")
 	GAME_GM_NO_AUTHORIZE                 = []byte("你没有权限进行此操作!")
 	GAME_USER_NEW_ITEM                   = []byte("你获得了管理员给予的物品!")
 	GAME_USER_NEW_ITEM_RESTART           = []byte("重启游戏以获得奖励的物品!")
-	GAME_CHANNEL_MESSAGE                 = "频道"
+	GAME_CHANNEL_MESSAGE                 = "#CSO2_UI_MEGAPHONE_TYPE_02_01"
 	GAME_ROOM_JOIN_FAILED_CLOSED         = []byte("#CSO2_POPUP_ROOM_JOIN_FAILED_CLOSED")
 	GAME_ROOM_JOIN_FAILED_FULL           = []byte("#CSO2_POPUP_ROOM_JOIN_FAILED_FULL")
 	GAME_ROOM_JOIN_FAILED_BAD_PASSWORD   = []byte("#CSO2_POPUP_ROOM_JOIN_FAILED_INVALID_PASSWD")
