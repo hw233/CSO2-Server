@@ -21,7 +21,7 @@ var (
 	GAME_GM_NO_AUTHORIZE                 = []byte("你没有权限进行此操作!")
 	GAME_USER_NEW_ITEM                   = []byte("你获得了管理员给予的物品!")
 	GAME_USER_NEW_ITEM_RESTART           = []byte("重启游戏以获得奖励的物品!")
-	GAME_CHANNEL_MESSAGE                 = []byte("#CSO2_UI_MEGAPHONE_TYPE_02_01")
+	GAME_CHANNEL_MESSAGE                 = "#CSO2_UI_MEGAPHONE_TYPE_02_01"
 	GAME_ROOM_JOIN_FAILED_CLOSED         = []byte("#CSO2_POPUP_ROOM_JOIN_FAILED_CLOSED")
 	GAME_ROOM_JOIN_FAILED_FULL           = []byte("#CSO2_POPUP_ROOM_JOIN_FAILED_FULL")
 	GAME_ROOM_JOIN_FAILED_BAD_PASSWORD   = []byte("#CSO2_POPUP_ROOM_JOIN_FAILED_INVALID_PASSWD")
