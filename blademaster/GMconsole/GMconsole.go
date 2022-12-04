@@ -105,6 +105,8 @@ func RecvGMmsg(client net.Conn) {
 			additem(client, req)
 		case GMremoveitem:
 			removeitem(client, req)
+		case GMdelroom:
+			delroom(client, req)
 		case GMsave:
 			save(client, req)
 		case GMBeVIP:
@@ -142,6 +144,7 @@ func login(client net.Conn, req []string) {
 func userlist(client net.Conn, req []string) {
 	if _, ok := clients[client.RemoteAddr().String()]; !ok || !clients[client.RemoteAddr().String()] {
 		DebugInfo(2, "Console from", client.RemoteAddr().String(), "sent a userlist req but not logged in")
+		return
 	}
 	rst := OutUserList{
 		len(UsersManager.Users),
@@ -169,6 +172,7 @@ func kickUser(client net.Conn, req []string) {
 	}
 	if _, ok := clients[client.RemoteAddr().String()]; !ok || !clients[client.RemoteAddr().String()] {
 		DebugInfo(2, "Console from", client.RemoteAddr().String(), "sent a kick user req but not logged in")
+		return
 	}
 	for _, v := range UsersManager.Users {
 		if v == nil {
@@ -191,7 +195,7 @@ func kickUser(client net.Conn, req []string) {
 }
 
 func additem(client net.Conn, req []string) {
-	if len(req) < 3 {
+	if len(req) < 4 {
 		DebugInfo(2, "Console from", client.RemoteAddr().String(), "sent a illegal additem packet")
 		rst := []byte(GMAdditemFailed)
 		GMSendPacket(&rst, client)
@@ -199,9 +203,16 @@ func additem(client net.Conn, req []string) {
 	}
 	if _, ok := clients[client.RemoteAddr().String()]; !ok || !clients[client.RemoteAddr().String()] {
 		DebugInfo(2, "Console from", client.RemoteAddr().String(), "sent a additem req but not logged in")
+		return
 	}
 
 	id, err := strconv.Atoi(req[2])
+	if err != nil {
+		rst := []byte(GMAdditemFailed)
+		GMSendPacket(&rst, client)
+	}
+
+	count, err := strconv.Atoi(req[3])
 	if err != nil {
 		rst := []byte(GMAdditemFailed)
 		GMSendPacket(&rst, client)
@@ -213,10 +224,10 @@ func additem(client net.Conn, req []string) {
 		}
 		if v.UserName == req[1] {
 
-			v.AddItem(uint32(id))
+			idx := v.AddItem(uint32(id), uint16(count), 0)
 
 			rst := BytesCombine(BuildHeader(v.CurrentSequence, PacketTypeInventory_Create),
-				BuildInventoryInfoSingle(v, uint32(id)))
+				BuildInventoryInfoSingle(v, uint32(id), idx))
 			SendPacket(rst, v.CurrentConnection)
 			OnSendMessage(v.CurrentSequence, v.CurrentConnection, MessageNotice, GAME_USER_NEW_ITEM)
 
@@ -246,7 +257,7 @@ func additem(client net.Conn, req []string) {
 
 		}
 
-		u.AddItem(uint32(id))
+		u.AddItem(uint32(id), uint16(count), 0)
 		err = UpdateUserToDB(&u)
 
 		if err == nil {
@@ -272,6 +283,7 @@ func removeitem(client net.Conn, req []string) {
 	}
 	if _, ok := clients[client.RemoteAddr().String()]; !ok || !clients[client.RemoteAddr().String()] {
 		DebugInfo(2, "Console from", client.RemoteAddr().String(), "sent a removeitem req but not logged in")
+		return
 	}
 
 	id, err := strconv.Atoi(req[2])
@@ -288,7 +300,7 @@ func removeitem(client net.Conn, req []string) {
 
 			v.RemoveItem(uint32(id))
 
-			rst := BytesCombine(BuildHeader(v.CurrentSequence, PacketTypeUserInfo), BuildUserInfo(0XFFFFFFFF, NewUserInfo(v), v.Userid, true))
+			rst := BytesCombine(BuildHeader(v.CurrentSequence, PacketTypeUserInfo), BuildUserInfo(0xFFFFFFFF, NewUserInfo(v), v.Userid, true))
 			SendPacket(rst, v.CurrentConnection)
 
 			rst = []byte(GMRemoveitemSuccess)
@@ -334,9 +346,49 @@ func removeitem(client net.Conn, req []string) {
 	DebugInfo(1, "Console from", client.RemoteAddr().String(), "remove item", id, "to User", req[1], "not found")
 }
 
+func delroom(client net.Conn, req []string) {
+	if len(req) < 4 {
+		DebugInfo(2, "Console from", client.RemoteAddr().String(), "sent a illegal delroom packet")
+		rst := []byte(GMDelRoomFailed)
+		GMSendPacket(&rst, client)
+		return
+	}
+	if _, ok := clients[client.RemoteAddr().String()]; !ok || !clients[client.RemoteAddr().String()] {
+		DebugInfo(2, "Console from", client.RemoteAddr().String(), "sent a delroom req but not logged in")
+		return
+	}
+
+	chlsrvid, err := strconv.Atoi(req[1])
+	if err != nil {
+		rst := []byte(GMDelRoomFailed)
+		GMSendPacket(&rst, client)
+	}
+
+	chlid, err := strconv.Atoi(req[2])
+	if err != nil {
+		rst := []byte(GMDelRoomFailed)
+		GMSendPacket(&rst, client)
+	}
+
+	roomid, err := strconv.Atoi(req[3])
+	if err != nil {
+		rst := []byte(GMDelRoomFailed)
+		GMSendPacket(&rst, client)
+	}
+
+	DelChannelRoom(uint16(roomid),
+		uint8(chlid),
+		uint8(chlsrvid))
+
+	rst := []byte(GMDelRoomSuccess)
+	GMSendPacket(&rst, client)
+	DebugInfo(1, "Console from", client.RemoteAddr().String(), "deleted room ID=", roomid)
+}
+
 func save(client net.Conn, req []string) {
 	if _, ok := clients[client.RemoteAddr().String()]; !ok || !clients[client.RemoteAddr().String()] {
 		DebugInfo(2, "Console from", client.RemoteAddr().String(), "sent a additem req but not logged in")
+		return
 	}
 	if !SaveAllUsers() {
 		rst := []byte(GMSaveFailed)
@@ -358,6 +410,7 @@ func vipUser(client net.Conn, req []string) {
 	}
 	if _, ok := clients[client.RemoteAddr().String()]; !ok || !clients[client.RemoteAddr().String()] {
 		DebugInfo(2, "Console from", client.RemoteAddr().String(), "sent a vip user req but not logged in")
+		return
 	}
 	for _, v := range UsersManager.Users {
 		if v == nil {
@@ -366,7 +419,7 @@ func vipUser(client net.Conn, req []string) {
 		if v.UserName == req[1] {
 			v.SetVIP()
 
-			rst := BytesCombine(BuildHeader(v.CurrentSequence, PacketTypeUserInfo), BuildUserInfo(0XFFFFFFFF, NewUserInfo(v), v.Userid, true))
+			rst := BytesCombine(BuildHeader(v.CurrentSequence, PacketTypeUserInfo), BuildUserInfo(0xFFFFFFFF, NewUserInfo(v), v.Userid, true))
 			SendPacket(rst, v.CurrentConnection)
 
 			rst = []byte(GMBeVIPSuccess)
@@ -422,6 +475,7 @@ func gmUser(client net.Conn, req []string) {
 	}
 	if _, ok := clients[client.RemoteAddr().String()]; !ok || !clients[client.RemoteAddr().String()] {
 		DebugInfo(2, "Console from", client.RemoteAddr().String(), "sent a gm user req but not logged in")
+		return
 	}
 	for _, v := range UsersManager.Users {
 		if v == nil {
@@ -429,7 +483,7 @@ func gmUser(client net.Conn, req []string) {
 		}
 		if v.UserName == req[1] {
 			v.SetGM()
-			rst := BytesCombine(BuildHeader(v.CurrentSequence, PacketTypeUserInfo), BuildUserInfo(0XFFFFFFFF, NewUserInfo(v), v.Userid, true))
+			rst := BytesCombine(BuildHeader(v.CurrentSequence, PacketTypeUserInfo), BuildUserInfo(0xFFFFFFFF, NewUserInfo(v), v.Userid, true))
 			SendPacket(rst, v.CurrentConnection)
 
 			rst = []byte(GMBeGMSuccess)

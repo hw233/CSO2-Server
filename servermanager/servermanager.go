@@ -7,6 +7,7 @@ import (
 
 	. "github.com/KouKouChan/CSO2-Server/blademaster/typestruct"
 	. "github.com/KouKouChan/CSO2-Server/kerlong"
+	. "github.com/KouKouChan/CSO2-Server/kerlong/encode"
 	. "github.com/KouKouChan/CSO2-Server/verbose"
 )
 
@@ -179,7 +180,8 @@ func BuildChannelList(num uint8, channels []*ChannelInfo) []byte {
 		temp := make([]byte, 9+len(channels[i].ChannelName))
 		offset := 0
 		WriteUint8(&temp, channels[i].ChannelID, &offset)
-		WriteString(&temp, channels[i].ChannelName, &offset)
+		ansiName, _ := Utf8ToLocal(string(channels[i].ChannelName))
+		WriteString(&temp, []byte(ansiName), &offset)
 		WriteUint16(&temp, channels[i].Unk00, &offset)
 		WriteUint16(&temp, channels[i].Unk01, &offset)
 		WriteUint8(&temp, channels[i].Unk02, &offset)

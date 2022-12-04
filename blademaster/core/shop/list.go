@@ -40,33 +40,51 @@ func InitShopReply() {
 	offset, optIdx := 0, 0
 	WriteUint8(&buf, outshoplist, &offset)
 	WriteUint16(&buf, uint16(len(ShopItemList)), &offset)
-	for _, item := range ShopItemList {
-		tmp := make([]byte, 128)
+	for k, _ := range ShopItemList {
+		optIdx = k * 5
+		tmp := make([]byte, 512)
 		offset = 0
 
-		WriteUint32(&tmp, item.ItemID, &offset)
-		WriteUint8(&tmp, item.Currency, &offset)
-		WriteUint8(&tmp, 1, &offset)            //numopt
-		WriteUint32(&tmp, item.ItemID, &offset) //optidx
-		WriteUint16(&tmp, 0, &offset)           //quantity
-		WriteUint64(&tmp, 0, &offset)           //continue~day
-		WriteUint8(&tmp, 0, &offset)
-		WriteUint16(&tmp, 1, &offset)
-		WriteUint32(&tmp, item.Price, &offset)
-		WriteUint32(&tmp, item.Price, &offset)
-		WriteUint8(&tmp, 0, &offset) //discount
-		WriteUint32(&tmp, 0, &offset)
-		WriteUint32(&tmp, 0, &offset)
-		WriteUint8(&tmp, 0, &offset) //flags
-		WriteUint8(&tmp, 0, &offset)
-		WriteUint8(&tmp, 1, &offset)
-		WriteUint8(&tmp, 0, &offset)
-		WriteUint32(&tmp, 0, &offset)
-		WriteUint8(&tmp, 0, &offset)
-		WriteUint8(&tmp, 0, &offset)
+		saveBoxOptId(ShopItemList[k].ItemID, uint32(optIdx))
 
-		optIdx++
+		WriteUint32(&tmp, ShopItemList[k].ItemID, &offset)
+		WriteUint8(&tmp, ShopItemList[k].Currency, &offset)
+		WriteUint8(&tmp, uint8(len(ShopItemList[k].Opt)), &offset) //numopt
+		for _, opt := range ShopItemList[k].Opt {
+			WriteUint32(&tmp, uint32(optIdx), &offset) //optidx
+			WriteUint16(&tmp, opt.Day, &offset)        //quantity
+			WriteUint64(&tmp, 0, &offset)              //continue~day
+			WriteUint8(&tmp, 0, &offset)
+			WriteUint16(&tmp, opt.Count, &offset)
+			WriteUint32(&tmp, opt.Price, &offset)
+			WriteUint32(&tmp, opt.Price, &offset)
+			WriteUint8(&tmp, 0, &offset) //discount
+			WriteUint32(&tmp, 0, &offset)
+			WriteUint32(&tmp, 0, &offset)
+			WriteUint8(&tmp, 0, &offset) //flags
+			WriteUint8(&tmp, 0, &offset)
+			WriteUint8(&tmp, 1, &offset)
+			WriteUint8(&tmp, 0, &offset)
+			WriteUint32(&tmp, 0, &offset)
+			WriteUint8(&tmp, 0, &offset) //bmacket
+			WriteUint8(&tmp, 0, &offset) //efficiency
+			optIdx++
+			if optIdx/5 == 0 { //避免溢出
+				break
+			}
+		}
+
 		buf = BytesCombine(buf, tmp[:offset])
 	}
 	ShopReply = buf
+}
+
+func saveBoxOptId(boxid, optid uint32) {
+	for k, v := range BoxList {
+		if BoxList[k].BoxID == boxid {
+			v.OptId = optid
+			BoxList[k] = v
+			break
+		}
+	}
 }

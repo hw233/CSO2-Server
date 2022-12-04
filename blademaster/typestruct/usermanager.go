@@ -3,6 +3,7 @@ package typestruct
 import (
 	"sync"
 
+	. "github.com/KouKouChan/CSO2-Server/kerlong"
 	. "github.com/KouKouChan/CSO2-Server/verbose"
 )
 
@@ -72,4 +73,31 @@ func (dest *UManager) DelUser(src *User) bool {
 		return true
 	}
 	return false
+}
+
+func (dest *UManager) GetChannelUsers(chlsrvid, chlid uint8) []byte {
+	if dest.UserNum <= 0 {
+		DebugInfo(2, "Usermanager Error : There is no online user !")
+		return []byte{0, 0}
+	}
+	buf := make([]byte, 2)
+	offset, num := 0, 0
+	dest.Lock.Lock()
+	defer dest.Lock.Unlock()
+	for _, u := range dest.Users {
+		if u.GetUserChannelServerID() == chlsrvid &&
+			u.GetUserChannelID() == chlid {
+			num++
+
+			tmpbuf := make([]byte, 128)
+			WriteUint32(&tmpbuf, u.Userid, &offset)
+			WriteString(&tmpbuf, []byte(u.IngameName), &offset)
+
+			buf = BytesCombine(buf, tmpbuf[:offset], BuildUserInfo(0xFFFFFFFF, NewUserInfo(u), 0, false))
+
+			offset = 0
+		}
+	}
+	WriteUint16(&buf, uint16(num), &offset)
+	return buf[:offset]
 }

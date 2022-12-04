@@ -16,11 +16,12 @@ import (
 	. "github.com/KouKouChan/CSO2-Server/blademaster/core/achievement"
 	. "github.com/KouKouChan/CSO2-Server/blademaster/core/automatch"
 	. "github.com/KouKouChan/CSO2-Server/blademaster/core/chat"
+	. "github.com/KouKouChan/CSO2-Server/blademaster/core/disassemble"
 	. "github.com/KouKouChan/CSO2-Server/blademaster/core/holepunch"
 	. "github.com/KouKouChan/CSO2-Server/blademaster/core/host"
 	. "github.com/KouKouChan/CSO2-Server/blademaster/core/inventory"
-	. "github.com/KouKouChan/CSO2-Server/blademaster/core/mail"
 	. "github.com/KouKouChan/CSO2-Server/blademaster/core/message"
+	. "github.com/KouKouChan/CSO2-Server/blademaster/core/notify"
 	. "github.com/KouKouChan/CSO2-Server/blademaster/core/option"
 	. "github.com/KouKouChan/CSO2-Server/blademaster/core/playerinfo"
 	. "github.com/KouKouChan/CSO2-Server/blademaster/core/quick"
@@ -45,7 +46,7 @@ import (
 
 var (
 	//SERVERVERSION 版本号
-	SERVERVERSION = "v0.5.0"
+	SERVERVERSION = "v0.8.0"
 )
 
 func ReadHead(client net.Conn) ([]byte, bool) {
@@ -245,6 +246,12 @@ func main() {
 	//Start BroadCast Service
 	go BroadcastRoomList()
 
+	//Start OutdatedItem Service
+	go CheckOutdatedItemService()
+
+	//Start SaveUserData Service
+	go SaveAllUsersService()
+
 	//Start Register Server
 	if Conf.EnableRegister != 0 {
 		go OnRegister(path)
@@ -368,12 +375,14 @@ func RecvMessage(client net.Conn) {
 			OnShopRequest(&dataPacket, client)
 		case PacketTypeReport:
 			OnReportRequest(&dataPacket, client)
-		case PacketTypeMail:
-			OnMail(&dataPacket, client)
+		case PacketTypeNotify:
+			OnNotify(&dataPacket, client)
 		case PacketTypeSupply:
 			OnSupplyRequest(&dataPacket, client)
 		case PacketTypeUseItem:
 			OnUseItem(&dataPacket, client)
+		case PacketTypeDisassemble:
+			OnDisassemble(&dataPacket, client)
 		default:
 			DebugInfo(2, "Unknown packet", dataPacket.Id, "from", client.RemoteAddr().String())
 		}
@@ -397,6 +406,39 @@ func BroadcastRoomList() {
 			}
 		}
 
+	}
+}
+
+func CheckOutdatedItemService() {
+	for {
+		timer := time.NewTimer(3 * time.Minute)
+		<-timer.C
+
+		for _, v := range UsersManager.Users {
+			if v != nil {
+				idxs := v.CheckOutdatedItemIngame()
+				DebugInfo(1, "Find", len(idxs), "outdated items for user", v.UserName)
+				for _, idx := range idxs {
+					rst := BytesCombine(BuildHeader(v.CurrentSequence, PacketTypeInventory_Create),
+						BuildInventoryInfoSingle(v, 0, idx))
+					SendPacket(rst, v.CurrentConnection)
+				}
+			}
+		}
+
+	}
+}
+
+func SaveAllUsersService() {
+	for {
+		timer := time.NewTimer(1 * time.Minute)
+		<-timer.C
+
+		if SaveAllUsers() {
+			DebugInfo(1, "Save all users data success !")
+		} else {
+			DebugInfo(1, "Save all users data failed !")
+		}
 	}
 }
 

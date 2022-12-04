@@ -3,6 +3,7 @@ package host
 import (
 	"net"
 
+	. "github.com/KouKouChan/CSO2-Server/blademaster/core/inventory"
 	. "github.com/KouKouChan/CSO2-Server/blademaster/typestruct"
 	. "github.com/KouKouChan/CSO2-Server/kerlong"
 	. "github.com/KouKouChan/CSO2-Server/servermanager"
@@ -38,23 +39,34 @@ func OnHostItemUsing(p *PacketData, client net.Conn) {
 		DebugInfo(2, "Error : User", uPtr.UserName, "try to send ItemUsing but in a null room !")
 		return
 	}
-	//是不是房主
-	if rm.HostUserID != uPtr.Userid {
-		DebugInfo(2, "Error : User", uPtr.UserName, "try to send ItemUsing but isn't host !")
+	//发送用户背包数据
+	itemIdx, ok := dest.DecreaseItem(pkt.ItemID)
+	if !ok {
+		DebugInfo(2, "User", uPtr.UserName, "use item", pkt.ItemID, "in match failed")
 		return
 	}
-	//发送用户背包数据
-	rst := BytesCombine(BuildHeader(uPtr.CurrentSequence, PacketTypeHost), BuildItemUsing(pkt.UserID, pkt.ItemID))
+	rst := BytesCombine(BuildHeader(dest.CurrentSequence, PacketTypeInventory_Create),
+		BuildInventoryInfoSingle(dest, 0, itemIdx))
+	SendPacket(rst, dest.CurrentConnection)
+	//发送房主数据包
+	rst = BytesCombine(BuildHeader(uPtr.CurrentSequence, PacketTypeHost), BuildItemUsing(pkt.UserID, pkt.ItemID, dest.GetItemCount(itemIdx)))
 	SendPacket(rst, uPtr.CurrentConnection)
 	DebugInfo(2, "Send User", dest.UserName, "ItemUsed packet to host", uPtr.UserName)
 }
 
-func BuildItemUsing(uid uint32, itemid uint32) []byte {
-	buf := make([]byte, 10)
+func BuildItemUsing(uid uint32, itemid uint32, num int) []byte {
+	buf := make([]byte, 20)
 	offset := 0
 	WriteUint8(&buf, ItemUsing, &offset)
 	WriteUint32(&buf, uid, &offset)
 	WriteUint32(&buf, itemid, &offset)
-	WriteUint8(&buf, 1, &offset)
+	if itemid == 2019 {
+		WriteUint8(&buf, 1, &offset)
+		WriteUint8(&buf, 1, &offset)
+		WriteUint8(&buf, 1, &offset)
+		WriteUint8(&buf, 1, &offset)
+	} else {
+		WriteUint8(&buf, uint8(num), &offset)
+	}
 	return buf[:offset]
 }

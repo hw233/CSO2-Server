@@ -25,9 +25,6 @@ func OnRoomList(p *PacketData, client net.Conn) {
 			DebugInfo(2, "Error : Client from", client.RemoteAddr().String(), "request a unknown channelServer !")
 			return
 		}
-		rst := BuildLobbyReply(uPtr.CurrentSequence, *p)
-		SendPacket(rst, uPtr.CurrentConnection)
-		DebugInfo(2, "Sent a lobbyReply packet to", client.RemoteAddr().String())
 
 		//发送频道请求所得房间列表
 		chl := GetChannelWithID(pkt.ChannelIndex, chlsrv)
@@ -35,6 +32,11 @@ func OnRoomList(p *PacketData, client net.Conn) {
 			log.Println("Error : Client from", client.RemoteAddr().String(), "request a unknown channel !")
 			return
 		}
+
+		rst := BuildLobbyReply(uPtr.CurrentSequence, *p, chlsrv.ServerIndex, chl.ChannelID)
+		SendPacket(rst, uPtr.CurrentConnection)
+		DebugInfo(2, "Sent a lobbyReply packet to", client.RemoteAddr().String())
+
 		rst = BuildRoomList(uPtr.CurrentSequence, chl)
 		SendPacket(rst, uPtr.CurrentConnection)
 		DebugInfo(2, "Sent a roomList packet to", client.RemoteAddr().String())
@@ -92,17 +94,25 @@ func OnBroadcastRoomList(chlsrvid uint8, chlid uint8, u *User) {
 	DebugInfo(2, "Sent a roomList packet to", u.CurrentConnection.RemoteAddr().String())
 }
 
-func BuildLobbyReply(seq *uint8, p PacketData) []byte {
+func BuildLobbyReply(seq *uint8, p PacketData, chlsrvid, chlid uint8) []byte {
 	rst := BuildHeader(seq, PacketTypeLobby)
 	lob := OutLobbyJoinRoom{
-		0, 2, 4,
+		JoinLobby, chlsrvid, chlid,
 	}
 	rst = append(rst,
-		JoinRoom,
+		SetLobby,
 		lob.Unk00,
 		lob.Unk01,
 		lob.Unk02)
-	WriteLen(&rst)
+	return rst
+}
+
+func BuildCurrentLobby(seq *uint8, chlsrvid, chlid uint8) []byte {
+	rst := BuildHeader(seq, PacketTypeLobby)
+	buf := make([]byte, 1)
+	offset := 0
+	WriteUint8(&buf, 0, &offset)
+	rst = BytesCombine(rst, buf[:offset], UsersManager.GetChannelUsers(chlsrvid, chlid))
 	return rst
 }
 
@@ -124,7 +134,7 @@ func BuildRoomList(seq *uint8, chl *ChannelInfo) []byte {
 		roombuf := make([]byte, 512)
 		offset := 0
 		WriteUint16(&roombuf, v.Id, &offset)
-		WriteUint64(&roombuf, 0XFFFFFFFFFFFFFFFF, &offset)
+		WriteUint64(&roombuf, 0xFFFFFFFFFFFFFFFF, &offset)
 		WriteString(&roombuf, v.Setting.RoomName, &offset)
 		WriteUint8(&roombuf, v.RoomNumber, &offset)
 		WriteUint8(&roombuf, v.PasswordProtected, &offset)

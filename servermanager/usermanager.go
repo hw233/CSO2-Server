@@ -30,6 +30,7 @@ func DelUserWithConn(con net.Conn) bool {
 	}
 	for k, v := range UsersManager.Users {
 		if v.CurrentConnection == con {
+			v.CheckOutdatedItem()
 			CheckErr(UpdateUserToDB(v))
 			UsersManager.Lock.Lock()
 			defer UsersManager.Lock.Unlock()

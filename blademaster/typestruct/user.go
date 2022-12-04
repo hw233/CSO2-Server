@@ -1,9 +1,11 @@
 package typestruct
 
 import (
+	"fmt"
 	"math"
 	"net"
 	"sync"
+	"time"
 
 	. "github.com/KouKouChan/CSO2-Server/blademaster/Exp"
 )
@@ -101,6 +103,14 @@ const (
 	UserForceUnknown          = 0
 	UserForceTerrorist        = 1
 	UserForceCounterTerrorist = 2
+
+	perDay = float64(15) / 64
+)
+
+var (
+	ti, _           = time.Parse("2006-01-02 15:04:05", "1970-01-01 00:00:00")
+	maxTime, _      = time.Parse("2006-01-02 15:04:05", "2200-01-01 00:00:00")
+	maxTimeDuration = uint64(maxTime.Sub(ti).Minutes() * perDay)
 )
 
 func (u User) IsVIP() bool {
@@ -280,7 +290,7 @@ func (u User) GetUserTeam() uint8 {
 }
 
 func (u User) IsUserReady() bool {
-	return u.Currentstatus == UserReady
+	return u.Currentstatus != UserNotReady
 }
 
 func (u *User) SetUserIngame(ingame bool) {
@@ -439,7 +449,7 @@ func GetNewUser() User {
 	return User{
 		0,
 		0,
-		0,               //nexonid
+		1,               //nexonid
 		"",              //loginname
 		"",              //username,looks can change it to another name
 		[]byte{},        //passwd
@@ -711,28 +721,77 @@ func (u *User) CountWeaponKill(itemid uint32) {
 	}
 }
 
-func (u *User) AddItem(itemid uint32) {
+func (u *User) AddItem(itemid uint32, count uint16, times uint64) int {
+	if u == nil || itemid == 0 {
+		return 0
+	}
+
+	if times != 0 {
+		return u.ExtendItemTime(itemid, count, times)
+	}
+
+	u.UserMutex.Lock()
+	defer u.UserMutex.Unlock()
+	if IsItemRepetable(itemid) {
+		for k, v := range u.Inventory.Items {
+			if v.Id == itemid && v.Count <= math.MaxUint16-count {
+				u.Inventory.Items[k].Count += count
+				return k
+			}
+		}
+	}
+	if u.Inventory.NumOfItem < math.MaxUint16 {
+		u.Inventory.NumOfItem++
+		u.Inventory.Items = append(u.Inventory.Items, UserInventoryItem{itemid, count, 1, times})
+		return len(u.Inventory.Items) - 1
+	}
+
+	return 0
+}
+
+func (u *User) ExtendItemTime(itemid uint32, count uint16, times uint64) int {
+	d, _ := time.ParseDuration(fmt.Sprintf("%dh", times*24))
+
+	u.UserMutex.Lock()
+	defer u.UserMutex.Unlock()
+	//只叠加有限期的
+	for k, v := range u.Inventory.Items {
+		if v.Id == itemid && v.Time != 0 {
+			u.Inventory.Items[k].Time += uint64(d.Minutes() * perDay)
+			return k
+		}
+	}
+	//只有无限期的或者没有该物品
+	dd := time.Now().Add(d).Sub(ti)
+	if u.Inventory.NumOfItem < math.MaxUint16 {
+		u.Inventory.NumOfItem++
+		u.Inventory.Items = append(u.Inventory.Items, UserInventoryItem{itemid, count, 1, uint64(dd.Minutes() * perDay)})
+		return len(u.Inventory.Items) - 1
+	}
+
+	return 0
+}
+
+func (u *User) SetBoughtItem(id uint32) {
 	if u == nil {
 		return
 	}
 	u.UserMutex.Lock()
 	defer u.UserMutex.Unlock()
-	for k, v := range u.Inventory.Items {
-		if v.Id == itemid && v.Count < math.MaxUint16 {
-			u.Inventory.Items[k].Count++
-			return
-		}
-	}
-	u.Inventory.Items = append(u.Inventory.Items, UserInventoryItem{itemid, 1})
-	if u.Inventory.NumOfItem < math.MaxUint16 {
-		u.Inventory.NumOfItem++
-	}
+	u.Inventory.OnlyOnceBundleItemId[id] = true
 }
 
-func (u *User) AddItemSingle(itemid uint32) {
-	if u == nil {
+func (u *User) AddItemSingle(itemid uint32, times uint64) {
+	if u == nil || itemid == 0 {
 		return
 	}
+
+	if times != 0 {
+		d, _ := time.ParseDuration(fmt.Sprintf("%dh", times*24))
+		dd := time.Now().Add(d).Sub(ti)
+		times = uint64(dd.Minutes() * perDay)
+	}
+
 	u.UserMutex.Lock()
 	defer u.UserMutex.Unlock()
 	//检查是否已经拥有
@@ -742,10 +801,17 @@ func (u *User) AddItemSingle(itemid uint32) {
 		}
 	}
 	//添加
-	u.Inventory.Items = append(u.Inventory.Items, UserInventoryItem{itemid, 1})
+	u.Inventory.Items = append(u.Inventory.Items, UserInventoryItem{itemid, 1, 1, times})
 	if u.Inventory.NumOfItem < math.MaxUint16 {
 		u.Inventory.NumOfItem++
 	}
+}
+
+func IsItemRepetable(itemid uint32) bool {
+	if ItemList[itemid].ItemType == 1 {
+		return true
+	}
+	return false
 }
 
 func (u *User) Updated() {
@@ -757,17 +823,60 @@ func (u *User) Updated() {
 	u.CheckUpdate = 1
 }
 
-func (u *User) DecreaseItem(itemid uint32) bool {
+func (u *User) DecreaseItem(itemid uint32) (int, bool) {
 	if u == nil {
-		return false
+		return 0, false
 	}
 	u.UserMutex.Lock()
 	defer u.UserMutex.Unlock()
 	for k, v := range u.Inventory.Items {
 		if v.Id == itemid && v.Count > 0 {
 			u.Inventory.Items[k].Count--
+			return k, true
+		}
+	}
+	return 0, false
+}
+
+func (u *User) GetItemCount(Idx int) int {
+	if u == nil {
+		return 0
+	}
+	u.UserMutex.Lock()
+	defer u.UserMutex.Unlock()
+	if Idx >= 0 && Idx < len(u.Inventory.Items) {
+		return int(u.Inventory.Items[Idx].Count)
+	}
+	return 0
+}
+
+func (u *User) UseBox(itemid, keyid uint32) bool {
+	if u == nil || itemid == keyid || itemid == 0 {
+		return false
+	}
+	boxused, keyused := false, false
+	boxidx, keyidx := 0, 0
+	u.UserMutex.Lock()
+	defer u.UserMutex.Unlock()
+	for k, v := range u.Inventory.Items {
+		if v.Id == itemid && v.Count > 0 {
+			u.Inventory.Items[k].Count--
+			boxused = true
+			boxidx = k
+		} else if v.Id == keyid && v.Count > 0 {
+			u.Inventory.Items[k].Count--
+			keyused = true
+			keyidx = k
+		}
+		if (boxused && keyused) || (boxused && keyid == 0) {
 			return true
 		}
+	}
+	if boxused {
+		u.Inventory.Items[boxidx].Count++
+	}
+	if keyused {
+		u.Inventory.Items[keyidx].Count++
 	}
 	return false
 }
@@ -792,8 +901,6 @@ func (u *User) RemoveItem(itemid uint32) {
 	defer u.UserMutex.Unlock()
 	for k, v := range u.Inventory.Items {
 		if v.Id == itemid {
-			// u.Inventory.Items = append(u.Inventory.Items[:k], u.Inventory.Items[k+1:]...)
-			// u.Inventory.NumOfItem = uint16(len(u.Inventory.Items))
 			u.Inventory.Items[k].Count = 0
 			return
 		}
@@ -817,4 +924,58 @@ func (u User) IsGM() bool {
 		return true
 	}
 	return false
+}
+
+func (u *User) CheckOutdatedItem() {
+	if u == nil {
+		return
+	}
+	dd := time.Now().Sub(ti)
+	times := uint64(dd.Minutes() * perDay)
+	u.UserMutex.Lock()
+	defer u.UserMutex.Unlock()
+	for k := 0; k < len(u.Inventory.Items); k++ {
+		if (u.Inventory.Items[k].Time != 0 && //时间不为0
+			(times > u.Inventory.Items[k].Time || u.Inventory.Items[k].Time > maxTimeDuration)) || //时间过期或过长
+			u.Inventory.Items[k].Count == 0 { //数量为0
+			u.Inventory.Items = append(u.Inventory.Items[:k], u.Inventory.Items[k+1:]...)
+			k-- //回退
+		}
+	}
+}
+
+func (u *User) CheckOutdatedItemIngame() []int {
+	var rst []int
+	if u == nil {
+		return rst
+	}
+	dd := time.Now().Sub(ti)
+	times := uint64(dd.Minutes() * perDay)
+	u.UserMutex.Lock()
+	defer u.UserMutex.Unlock()
+	for k := 0; k < len(u.Inventory.Items); k++ {
+		if u.Inventory.Items[k].Time != 0 && times > u.Inventory.Items[k].Time {
+			u.Inventory.Items[k].Count = 0
+			u.Inventory.Items[k].Time = 0
+			rst = append(rst, k)
+		}
+	}
+	return rst
+}
+
+func (u *User) CheckIllegalItem() []int {
+	var rst []int
+	if u == nil {
+		return rst
+	}
+	u.UserMutex.Lock()
+	defer u.UserMutex.Unlock()
+	for k := 0; k < len(u.Inventory.Items); k++ {
+		if _, ok := ItemList[u.Inventory.Items[k].Id]; !ok {
+			rst = append(rst, k)
+			u.Inventory.Items = append(u.Inventory.Items[:k], u.Inventory.Items[k+1:]...)
+			k--
+		}
+	}
+	return rst
 }

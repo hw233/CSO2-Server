@@ -68,10 +68,19 @@ type (
 		BoxID uint32
 		Unk00 uint32
 	}
-	InPointLottoUsePacket struct {
-		unk00   uint8
-		ItemSeq uint16
-		unk01   uint8
+	InItemUsePacket struct {
+		unk00       uint8
+		ItemSeq     uint16
+		ItemType    uint8
+		lenOfString uint8
+		String      []byte
+	}
+	InTryItemUsePacket struct {
+		unk00        uint8
+		ItemSeq      uint16
+		ItemType     uint8
+		lenOfNewName uint8
+		NewName      []byte
 	}
 	//InRoomListRequestPacket 房间列表请求，用于请求频道
 	InRoomListRequestPacket struct {
@@ -105,10 +114,10 @@ type (
 	InHostPacket struct {
 		InHostType uint8
 	}
-	InMailPacket struct {
-		InMailType uint8
+	InNotifyPacket struct {
+		InNotifyType uint8
 	}
-	InMailListPacket struct {
+	InNotifyListPacket struct {
 		InType uint8
 	}
 
@@ -133,8 +142,27 @@ type (
 		Type uint8
 	}
 
+	InEventPacket struct {
+		Type uint8
+	}
+
 	InAchievementCampaignPacket struct {
 		CampaignId uint16
+	}
+
+	InDisassemblePacket struct {
+		Type uint8
+	}
+
+	InDisassembleItemPacket struct {
+		SubType uint8
+	}
+	InDisassembleWeaponPacket struct {
+		Unk00  uint32
+		Unk01  uint8
+		ItemID uint32
+		Unk02  uint32
+		Unk03  uint32
 	}
 
 	//InNewRoomPacket 新建房间时传进来的数据包
@@ -342,21 +370,6 @@ type (
 		Unk03        uint16
 		AssisterTeam uint8 //待定,也可能是杀手的队伍
 	}
-	InHostDataPacket struct {
-		DataType uint8
-	}
-	InHostDataUsersPacket struct {
-		UserNum uint8
-		UserIDs []uint32
-		PageNum uint8
-		Unk00   uint8 //1
-	}
-	InHostDataCachePacket struct {
-		PageNum uint8
-		Unk00   uint8 //0
-		Length  uint16
-		Cache   []byte
-	}
 	InHostSetBuyMenu struct {
 		Userid uint32
 	}
@@ -448,7 +461,8 @@ const (
 	PacketTypeAutomatch        = 88
 	PacketTypeFriend           = 89
 	PacketTypeUnlock           = 90
-	PacketTypeMail             = 91
+	PacketTypeNotify           = 91
+	PacketTypeEvent            = 92
 	PacketTypeGZ               = 95
 	PacketTypeAchievement      = 96
 	PacketTypeSupply           = 102
@@ -597,15 +611,39 @@ func (p *PacketData) PraseOpenBoxPacket(dest *InOpenBoxPacket) bool {
 	return true
 }
 
-func (p *PacketData) PrasePointLottoUsePacket(dest *InPointLottoUsePacket) bool {
-	// id + type + box + unk = 6 bytes
+func (p *PacketData) PraseItemUsePacket(dest *InItemUsePacket) bool {
+	// id + type + unk + seq + unk = 6 bytes
 	if p.Length < 6 ||
 		dest == nil {
 		return false
 	}
 	dest.unk00 = ReadUint8(p.Data, &p.CurOffset)
 	dest.ItemSeq = ReadUint16(p.Data, &p.CurOffset)
-	dest.unk01 = ReadUint8(p.Data, &p.CurOffset)
+	dest.ItemType = ReadUint8(p.Data, &p.CurOffset)
+	switch dest.ItemType {
+	case 2:
+		dest.lenOfString = ReadUint8(p.Data, &p.CurOffset)
+		dest.String = ReadString(p.Data, &p.CurOffset, int(dest.lenOfString))
+	default:
+	}
+	return true
+}
+
+func (p *PacketData) PraseTryItemUsePacket(dest *InTryItemUsePacket) bool {
+	// id + type + unk + seq + type = 6 bytes
+	if p.Length < 6 ||
+		dest == nil {
+		return false
+	}
+	dest.unk00 = ReadUint8(p.Data, &p.CurOffset)
+	dest.ItemSeq = ReadUint16(p.Data, &p.CurOffset)
+	dest.ItemType = ReadUint8(p.Data, &p.CurOffset)
+	switch dest.ItemType {
+	case 2:
+		dest.lenOfNewName = ReadUint8(p.Data, &p.CurOffset)
+		dest.NewName = ReadString(p.Data, &p.CurOffset, int(dest.lenOfNewName))
+	default:
+	}
 	return true
 }
 
@@ -984,15 +1022,15 @@ func (p *PacketData) PraseHostPacket(dest *InHostPacket) bool {
 	return true
 }
 
-func (p *PacketData) PraseMailPacket(dest *InMailPacket) bool {
+func (p *PacketData) PraseNotifyPacket(dest *InNotifyPacket) bool {
 	//id + type = 2 bytes
 	if p.Length < 2 {
 		return false
 	}
-	dest.InMailType = ReadUint8(p.Data, &p.CurOffset)
+	dest.InNotifyType = ReadUint8(p.Data, &p.CurOffset)
 	return true
 }
-func (p *PacketData) PraseMailListPacket(dest *InMailListPacket) bool {
+func (p *PacketData) PraseNotifyListPacket(dest *InNotifyListPacket) bool {
 	//id + type = 2 bytes
 	if p.Length < 2 {
 		return false
@@ -1103,44 +1141,6 @@ func (p *PacketData) PraseInAssistPacket(dest *InAssistPacket) bool {
 	return true
 }
 
-func (p *PacketData) PraseInHostDataPacket(dest *InHostDataPacket) bool {
-	//id + type + datatype = 3 bytes
-	if p.Length < 3 ||
-		dest == nil {
-		return false
-	}
-	dest.DataType = ReadUint8(p.Data, &p.CurOffset)
-	return true
-}
-
-func (p *PacketData) PraseInHostDataCachePacket(dest *InHostDataCachePacket) bool {
-	//id + type + datatype + page + unk + length = 7 bytes
-	if p.Length < 7 ||
-		dest == nil {
-		return false
-	}
-	dest.PageNum = ReadUint8(p.Data, &p.CurOffset)
-	dest.Unk00 = ReadUint8(p.Data, &p.CurOffset)
-	dest.Length = ReadUint16(p.Data, &p.CurOffset)
-	dest.Cache = ReadString(p.Data, &p.CurOffset, int(dest.Length))
-	return true
-}
-
-func (p *PacketData) PraseInHostDataUsersPacket(dest *InHostDataUsersPacket) bool {
-	//id + type + datatype + usernum + page + unk = 6 bytes
-	if p.Length < 6 ||
-		dest == nil {
-		return false
-	}
-	dest.UserNum = ReadUint8(p.Data, &p.CurOffset)
-	num := int(dest.UserNum)
-	for i := 0; i < num; i++ {
-		dest.UserIDs = append(dest.UserIDs, ReadUint32(p.Data, &p.CurOffset))
-	}
-	dest.PageNum = ReadUint8(p.Data, &p.CurOffset)
-	dest.Unk00 = ReadUint8(p.Data, &p.CurOffset)
-	return true
-}
 func (p *PacketData) PraseSetBuyMenuPacket(dest *InHostSetBuyMenu) bool {
 	//id + type + userid = 6 bytes
 	if dest == nil ||
@@ -1226,6 +1226,47 @@ func (p *PacketData) PraseInAchievementPacket(dest *InAchievementPacket) bool {
 	return true
 }
 
+func (p *PacketData) PraseInEventPacket(dest *InEventPacket) bool {
+	//id + type = 2 bytes
+	if dest == nil ||
+		p.Length < 2 {
+		return false
+	}
+	dest.Type = ReadUint8(p.Data, &p.CurOffset)
+	return true
+}
+
+func (p *PacketData) PraseDisassemblePacket(dest *InDisassemblePacket) bool {
+	//id + type = 2 bytes
+	if dest == nil ||
+		p.Length < 2 {
+		return false
+	}
+	dest.Type = ReadUint8(p.Data, &p.CurOffset)
+	return true
+}
+func (p *PacketData) PraseDisassembleItemPacket(dest *InDisassembleItemPacket) bool {
+	//id + type + subtype = 3 bytes
+	if dest == nil ||
+		p.Length < 3 {
+		return false
+	}
+	dest.SubType = ReadUint8(p.Data, &p.CurOffset)
+	return true
+}
+func (p *PacketData) PraseDisassembleWeaponPacket(dest *InDisassembleWeaponPacket) bool {
+	//id + type + subtype + 17 = 20 bytes
+	if dest == nil ||
+		p.Length < 20 {
+		return false
+	}
+	dest.Unk00 = ReadUint32(p.Data, &p.CurOffset)
+	dest.Unk01 = ReadUint8(p.Data, &p.CurOffset)
+	dest.ItemID = ReadUint32(p.Data, &p.CurOffset)
+	dest.Unk02 = ReadUint32(p.Data, &p.CurOffset)
+	dest.Unk03 = ReadUint32(p.Data, &p.CurOffset)
+	return true
+}
 func (p *PacketData) PraseInAchievementCampaignPacket(dest *InAchievementCampaignPacket) bool {
 	//id + type + campaign = 4 bytes
 	if dest == nil ||
@@ -1267,11 +1308,11 @@ func (p InRoomCountdownPacket) ShouldCountdown() bool {
 
 //GetNextSeq 获取下一次的seq数据包序号
 func GetNextSeq(seq *uint8) uint8 {
-	if *seq > MAXSEQUENCE {
-		*seq = 0
-		return 0
+	if *seq == MAXSEQUENCE {
+		*seq = MINSEQUENCE
+	} else {
+		(*seq)++
 	}
-	(*seq)++
 	return *seq
 }
 

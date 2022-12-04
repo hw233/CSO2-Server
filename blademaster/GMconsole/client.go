@@ -13,14 +13,15 @@ import (
 func ToConsoleHost(username, password, addr, port string) {
 	fmt.Println("")
 	fmt.Println("Command:")
-	fmt.Println("	userlist       			  :show how many users in server")
-	fmt.Println("	kick [username]       		  :kick user")
-	fmt.Println("	save       			  :save all online user's data to database")
-	fmt.Println("	additem [username] [itemid]       :give user a item")
-	fmt.Println("	removeitem [username] [itemid]    :remove a item for user")
-	fmt.Println("	vip [username]       		  :give user a vip")
-	fmt.Println("	gm [username]       		  :give user a gm")
-	fmt.Println("	exit       			  :quit the console")
+	fmt.Println("	userlist       			  		:show how many users in server")
+	fmt.Println("	kick [username]       		  		:kick user")
+	fmt.Println("	save       			  		:save all online user's data to database")
+	fmt.Println("	additem [username] [itemid] [count]      	:give user item")
+	fmt.Println("	removeitem [username] [itemid]    		:remove a item for user")
+	fmt.Println("	delroom [serverindex] [channelindex] [roomid]   :delete room by force")
+	fmt.Println("	vip [username]       		  		:set user vip")
+	fmt.Println("	gm [username]       		  		:set user gm")
+	fmt.Println("	exit       			  		:quit the console")
 	fmt.Println("")
 
 	server, err := net.Dial("tcp", addr+":"+port)
@@ -90,6 +91,9 @@ func ToConsoleHost(username, password, addr, port string) {
 			rst := []byte(instream)
 			GMSendPacket(&rst, server)
 		case GMremoveitem:
+			rst := []byte(instream)
+			GMSendPacket(&rst, server)
+		case GMdelroom:
 			rst := []byte(instream)
 			GMSendPacket(&rst, server)
 		case GMsave:

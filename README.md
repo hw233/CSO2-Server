@@ -2,44 +2,52 @@
 
 [![Build status](https://ci.appveyor.com/api/projects/status/a4pj1il9li5s08k5?svg=true)](https://ci.appveyor.com/project/KouKouChan/cso2-server)
 [![](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
-[![](https://img.shields.io/badge/version-v0.6.0-blue)](https://github.com/KouKouChan/CSO2-Server/releases)
+[![](https://img.shields.io/badge/version-v0.8.0-blue)](https://github.com/NightElff/CSO2-Server/releases)
 
 [English](./README.en.md) | [Turkish](./README.tr.md) | [CodePage](./CodePage.md)
 
 *声明：Counter-Strike Online 2 归 NEXON 所有 ，本程序仅用于学习之用*
 
+
+
+#### 20221204 notes:
+
+​	这个项目太旧了，不管是代码风格还是架构等方面，且早期历史原因部分数据包与客户端并未对齐，改动的话牵一发而动全身，无法满足拓展需求，因此后续大概将不再维护该项目。我本地电脑有使用更好架构重写的代码，数据格式对齐更精确，因为个人精力时间等原因，并未写完，什么时候更新上来，我无法保证。
+
+
+
 ### 一、介绍
 
-CSOL2 服务器 v0.6.0
+CSOL2 服务器 v0.8.0
+
+默认需要浏览器打开**localhost:1314**网页注册账号，不需要输入邮箱和验证码
+
+用于 **2017年国服 Counter-Strike Online 2** 和 **2018年韩服 Counter-Strike Online 2**  
+
+目前客户端请使用L-Leite的启动器,**韩服端竞技模式有问题的请下载最新的汉化包**。
 
 基于L-Leite的[cso2-master-server](https://github.com/L-Leite/cso2-master-server)。
 
 如果大家有什么建议或问题，欢迎提出。
 
-欢迎大家帮忙本地化文件，具体见下方第三部分。
+欢迎大家帮忙本地化文件，具体见下方第五部分。
 
-切勿相信淘宝上的无良商家，如80游戏屋、千云科技、千云游戏、音悦娱乐网络等盗卖者！
 
-**交流群：**
+### 二、基本已完成的功能
 
-QQ-group 668635115
+    登录、频道、房间、仓库、UDP、角色战绩(游戏结果界面)、数据库、个人信息、聊天、命令行和数据库、新手教程、开箱子
 
-**使用该服务端的服务器：**
+### 三、正在编写的功能
 
-CSO2-CN QQ-group 820693825
+```
+nop
+```
 
-CSO2-CN QQ-group 948725573
+### 四、已知问题
 
-CSO2-TW https://discord.gg/CBqcPP5
+    nop
 
-CSO2-TUR/ENG/KOR : https://discord.gg/DC3n6nX89D
-
-### 二、已知问题
-
-    1.房主离开后，其余玩家会卡住直到炸出房间
-    2.服务端目前还未适配2017国服端的部分数据包，所以结算界面数据显示存在错误
-
-### 三、部分数据本地化方法
+### 五、部分数据本地化方法
 
 ```
 1.打开server.conf
@@ -49,13 +57,13 @@ CSO2-TUR/ENG/KOR : https://discord.gg/DC3n6nX89D
 5.根据 zh-cn.ini 中的内容相应修改你的zh-tw.ini文件
 ```
 
-### 四、客户端下载
+### 六、客户端下载
 
-  [2018年国服端](https://pan.baidu.com/s/1KD5ZIEsdTogUJ4WY_b-OjA) 提取码：52p7 
+  [点击2018年国服端下载](https://pan.baidu.com/s/1KD5ZIEsdTogUJ4WY_b-OjA) 提取码：52p7 
 
-  [2018模式解锁+启动器(必下)](https://pan.baidu.com/s/1EnUe93qaCBUjWD__INYh5Q) 提取码：2btm
+  [启动器下载](https://pan.baidu.com/s/1QGyRmjw24eJ5ycrFjorv_g)  提取码：amys
 
-### 五、使用方法
+### 七、使用方法
 
 1.需要有CSOL2客户端，同时使用第三方启动器
 
@@ -81,10 +89,8 @@ START ./bin/launcher.exe -masterip IP地址 -enablecustom -username 用户名 -p
 - 如果你想开启邮箱注册，那么你需要一个邮箱账号并且申请到了密钥，将密钥填入配置文件，同时开启EnableMail。
 - 如果你是和别人联机玩，那么即使你的电脑运行着服务端也**不能**在bat文件里填127.0.0.1，不然对方无法通过你的ip连接你。
 - 浏览器里可以输入localhost:1314进入web页面，点击右上角register进行注册。
-- 当你要架设局域网或外网时，请打开防火墙的端口。30001-TCP类型端口、30002-UDP类型端口
-- 建立互联网服务器需要双方玩家都能内网穿透，实测局域网能够连接，互联网无法房间内加入主机，可能需要架设虚拟局域网。
 
-### 六、Console使用方法
+### 八、Console使用方法
 
 CSO2-Server自带管理员功能，可通过命令行参数打开console功能管理服务器，前提需要服务器已经在运行。
 
@@ -112,7 +118,7 @@ Usage of CSO2-Server.exe:
 
 3.连接成功后可以使用命令管理服务器了，你可以踢出玩家，或者给予玩家物品等。
 
-### 七、自定义文件方法
+### 九、自定义文件方法
 
 1.下载CSOL2解包工具，[点击这里下载](https://pan.baidu.com/s/14q1SoIdHwp1casMWG2OS-w) 提取码：41bs
 
@@ -122,7 +128,7 @@ Usage of CSO2-Server.exe:
 
 4.将文件放入csol2目录的custom文件夹下，打开游戏
 
-### 八、Docker下使用方法
+### 十、Docker下使用方法
 
 1.首先你需要拥有Docker,请下载并安装Docker,同时配置好Docker,比如Docker源
 
@@ -140,15 +146,52 @@ docker run -p 30001:30001 -p 30002:30002 -p 1314:1314 -p 1315:1315 koukouchan/cs
 
 4.接下来打开客户端，连接服务器
 
-5.建议关闭docker时将容器数据导出，否则将丢失玩家数据！另外docker上的镜像版本要落后于最新的版本
+### 十一、编译环境
 
-### 九、编译环境
+*Go 1.15.6*
 
-*Go 1.15.8*
+当你要架设局域网或外网时，请打开防火墙的端口。30001-TCP类型端口、30002-UDP类型端口
 
-*MinGW 8.1.0*
+貌似建立互联网服务器需要双方玩家都能内网穿透，实测局域网能够连接，互联网无法房间内加入主机，可能需要架设虚拟局域网。
 
-### 十、图片
+### 十二、编译方法
+
+```shell
+1. 在shell中执行 go get github.com/KouKouChan/CSO2-Server
+2. 进入目录
+3. 执行命令 go build
+4. 运行生成的可执行文件即可
+```
+
+### 十三、Docker下编译方法
+
+1.首先你需要拥有Docker,请下载并安装Docker和Git,同时配置好Docker,比如Docker源,使用如下命令安装git:
+
+```
+yum install git     #centos
+或
+apt-get install git #ubuntu
+```
+
+2.在终端下输入以下命令:
+
+```shell
+git clone https://github.com/KouKouChan/CSO2-Server
+cd CSO2-Server
+docker build -t cso2-server .
+```
+
+3.在第2步后，如果运行正常，会显示所有步骤都运行完毕。接下来是运行服务端，为了能够让游戏和Docker容器里面的服务端相连，你需要打开相应的端口映射，使用以下命令运行：
+
+```shell
+docker run -p 30001:30001 -p 30002:30002 -p 1314:1314 -p 1315:1315 cso2-server
+```
+
+4.接下来打开客户端，连接服务器
+
+5.建议关闭docker时将容器数据导出，否则将丢失玩家数据！
+
+### 十四、图片
 
 ![Image](./photos/main.png)
 

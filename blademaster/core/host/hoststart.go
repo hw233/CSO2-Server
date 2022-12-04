@@ -28,7 +28,7 @@ func OnHostGameStart(client net.Conn) {
 		return
 	}
 	//房主开始游戏,设置房间状态
-	setting := BuildRoomSetting(rm, 0XFFFFFFFFFFFFFFFF)
+	setting := BuildRoomSetting(rm, 0xFFFFFFFFFFFFFFFF)
 	for _, v := range rm.Users {
 		if v.Userid != uPtr.Userid {
 			rst := BytesCombine(BuildHeader(v.CurrentSequence, PacketTypeRoom), setting)
@@ -47,6 +47,7 @@ func OnHostGameStart(client net.Conn) {
 				//加入主机
 				rst = BytesCombine(BuildHeader(v.CurrentSequence, PacketTypeHost), buildJoinHost(uPtr.Userid))
 				SendPacket(rst, v.CurrentConnection)
+				DebugInfo(2, "Host", v.UserName, "join room", string(rm.Setting.RoomName), "id", rm.Id)
 			}
 		}
 	}

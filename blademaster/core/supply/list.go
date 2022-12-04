@@ -4,7 +4,6 @@ import (
 	"net"
 
 	. "github.com/KouKouChan/CSO2-Server/blademaster/typestruct"
-	. "github.com/KouKouChan/CSO2-Server/configure"
 	. "github.com/KouKouChan/CSO2-Server/kerlong"
 	. "github.com/KouKouChan/CSO2-Server/servermanager"
 	. "github.com/KouKouChan/CSO2-Server/verbose"
@@ -41,17 +40,23 @@ func InitBoxReply() {
 	offset := 0
 	WriteUint8(&buf, uint8(len(BoxList)), &offset)
 	for _, v := range BoxList {
-		tmp := make([]byte, len(v.Items)*16+10)
+		tmp := make([]byte, len(v.Items)*16+20)
 		offset = 0
 		WriteUint32(&tmp, v.BoxID, &offset)
-		WriteUint32(&tmp, v.BoxID, &offset) //nextOptIndex
+		WriteUint32(&tmp, v.OptId, &offset) //nextOptIndex
 		WriteUint8(&tmp, uint8(len(v.Items)), &offset)
 		for _, item := range v.Items {
 			WriteUint32(&tmp, item.ItemID, &offset)
-			WriteUint32(&tmp, 0, &offset)
+			WriteUint16(&tmp, 0, &offset)
+			WriteUint16(&tmp, item.Day, &offset)
 			WriteUint64(&tmp, 0, &offset)
 		}
-		WriteUint8(&tmp, 0, &offset)
+		if v.KeyId == 0 {
+			WriteUint8(&tmp, 0, &offset)
+		} else {
+			WriteUint8(&tmp, 1, &offset)
+			WriteUint32(&tmp, v.KeyId, &offset)
+		}
 		buf = BytesCombine(buf, tmp[:offset])
 	}
 	supplyboxlist = buf

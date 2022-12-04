@@ -22,7 +22,7 @@ func OnShopRequest(p *PacketData, client net.Conn) {
 		case buyitem:
 			OnShopBuyItem(p, client)
 		default:
-			DebugInfo(2, "Unknown shop packet", pkt.InShopType, "from", client.RemoteAddr().String(), p.Data)
+			DebugInfo(2, "Unknown shop packet", pkt.InShopType, "from", client.RemoteAddr().String())
 		}
 	} else {
 		DebugInfo(2, "Error : Recived a illegal shop packet from", client.RemoteAddr().String())

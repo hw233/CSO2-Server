@@ -42,19 +42,18 @@ type (
 		VipRoomLevel       uint8
 
 		//设置
-		Setting       RoomSettings
-		CountingDown  bool
-		Countdown     uint8
-		NumPlayers    uint8
-		Users         map[uint32]*User
-		ParentChannel uint8
-		CtScore       uint8
-		TrScore       uint8
-		CtKillNum     uint32
-		TrKillNum     uint32
-		WinnerTeam    uint8
-		Cache         []byte
-		PageNum       uint8
+		Setting             RoomSettings
+		CountingDown        bool
+		Countdown           uint8
+		NumPlayers          uint8
+		Users               map[uint32]*User
+		ParentChannel       uint8
+		ParentChannelServer uint8
+		CtScore             uint8
+		TrScore             uint8
+		CtKillNum           uint32
+		TrKillNum           uint32
+		WinnerTeam          uint8
 
 		RoomMutex *sync.Mutex
 	}
@@ -65,14 +64,14 @@ const (
 
 	GameStart         = 0
 	HostJoin          = 1
-	HostRestart       = 2
 	HostStop          = 3
 	LeaveResultWindow = 4
 	GameContinue      = 5
 
 	//频道以及房间
 	SendFullRoomList = 0
-	JoinRoom         = 1
+	JoinLobby        = 0
+	SetLobby         = 1
 	UpdateUserInfo   = 2
 
 	//房间操作
@@ -539,14 +538,4 @@ func (rm *Room) RoomRemoveUser(id uint32) {
 		delete(rm.Users, id)
 		rm.NumPlayers--
 	}
-}
-
-func (rm *Room) RoomSaveCache(pagenum uint8, data []byte) {
-	if rm == nil || rm.NumPlayers <= 0 {
-		return
-	}
-	rm.RoomMutex.Lock()
-	defer rm.RoomMutex.Unlock()
-	rm.Cache = data
-	rm.PageNum = pagenum
 }

@@ -8,7 +8,6 @@ import (
 )
 
 const (
-	GameData     = 1
 	WeaponsPoint = 3
 	UserKillOne  = 7
 	UserDeath    = 8
@@ -38,8 +37,6 @@ func OnHost(p *PacketData, client net.Conn) {
 		switch pkt.InHostType {
 		case GameStart:
 			OnHostGameStart(client)
-		case GameData:
-			OnHostDataPacket(p, client)
 		case OnGameEnd:
 			OnHostGameEnd(p, client)
 		case SetInventory:
@@ -69,7 +66,7 @@ func OnHost(p *PacketData, client net.Conn) {
 		//case HostUnk00:
 		//fmt.Println("TeamWinPacket", p.data[:p.datalen], "from", client.RemoteAddr().String())
 		default:
-			DebugInfo(2, "Unknown host packet", pkt.InHostType, "from", client.RemoteAddr().String())
+			DebugInfo(2, "Unknown host packet", pkt.InHostType, "from", client.RemoteAddr().String(), p.Data)
 		}
 	} else {
 		DebugInfo(2, "Error : Recived a illegal host packet from", client.RemoteAddr().String())
