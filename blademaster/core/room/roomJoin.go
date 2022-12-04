@@ -38,7 +38,7 @@ func OnJoinRoom(p *PacketData, client net.Conn) {
 		rm.Id <= 0 {
 		OnSendMessage(uPtr.CurrentSequence, uPtr.CurrentConnection, MessageDialogBox,
 			GAME_ROOM_JOIN_FAILED_CLOSED)
-		DebugInfo(2, "Error : User", uPtr.UserName, "try to join a null room !")
+		DebugInfo(2, "Error : User", uPtr.UserName, "try to join a null room ! ID=", pkt.RoomId)
 		return
 	}
 	//检索密码
@@ -54,13 +54,14 @@ func OnJoinRoom(p *PacketData, client net.Conn) {
 	if rm.GetFreeSlots() <= 0 {
 		OnSendMessage(uPtr.CurrentSequence, uPtr.CurrentConnection, MessageDialogBox,
 			GAME_ROOM_JOIN_FAILED_FULL)
-		DebugInfo(2, "User", uPtr.UserName, "try to join a full room !")
+		DebugInfo(2, "User", uPtr.UserName, "try to join a full room ! ID=", pkt.RoomId)
 		return
 	}
 	//玩家加进房间
 	if !rm.JoinUser(uPtr) {
 		OnSendMessage(uPtr.CurrentSequence, uPtr.CurrentConnection, MessageDialogBox,
 			GAME_ROOM_JOIN_ERROR)
+		DebugInfo(2, "User", uPtr.UserName, "join  room ID=", rm.Id, "failed!")
 		return
 	}
 	//发送数据
@@ -68,7 +69,7 @@ func OnJoinRoom(p *PacketData, client net.Conn) {
 	rst = BytesCombine(rst, BuildCreateAndJoin(rm))
 	SendPacket(rst, uPtr.CurrentConnection)
 	DebugInfo(2, "User", uPtr.UserName, "joined room", string(rm.Setting.RoomName), "id", rm.Id)
-	rst = BytesCombine(BuildHeader(uPtr.CurrentSequence, PacketTypeRoom), BuildRoomSetting(rm, 0XFFFFFFFFFFFFFFFF))
+	rst = BytesCombine(BuildHeader(uPtr.CurrentSequence, PacketTypeRoom), BuildRoomSetting(rm, 0xFFFFFFFFFFFFFFFF))
 	SendPacket(rst, client)
 	DebugInfo(2, "Sent a room setting packet to", uPtr.UserName)
 	//发送玩家状态
@@ -96,6 +97,6 @@ func BuildPlayerJoin(u *User) []byte {
 	WriteUint8(&buf, OUTPlayerJoin, &offset)
 	WriteUint32(&buf, u.Userid, &offset)
 	buf = BytesCombine(buf, u.BuildUserNetInfo(),
-		BuildUserInfo(0XFFFFFFFF, NewUserInfo(u), 0, false))
+		BuildUserInfo(0xFFFFFFFF, NewUserInfo(u), 0, false))
 	return buf
 }

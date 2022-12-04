@@ -20,57 +20,6 @@ const (
 	ShopItemCSV    = "/CSO2-Server/assert/cstrike/scripts/shop.csv"
 )
 
-type ItemData struct {
-	ItemID      uint32
-	Name        string
-	Class       string
-	Category    string
-	BuyCategory string
-}
-
-type UnlockData struct {
-	ItemID         uint32
-	NextItemID     uint32
-	ConditionFlag0 uint32
-	Count0         uint32
-	ConditionFlag1 uint32
-	Count1         uint32
-	ConditionFlag2 uint32
-	Count2         uint32
-	ConditionFlag3 uint32
-	Count3         uint32
-	ConditionFlag4 uint32
-	Count4         uint32
-	Category       uint32
-}
-
-type BoxData struct {
-	BoxID      uint32
-	BoxName    string
-	Items      []BoxItem
-	TotalValue int
-}
-
-type BoxItem struct {
-	ItemID   uint32
-	ItemName string
-	Value    int
-}
-
-type ShopItem struct {
-	ItemID   uint32
-	Price    uint32
-	Currency uint8
-}
-
-var (
-	ItemList     = make(map[uint32]ItemData)
-	UnlockList   = make(map[uint32]UnlockData)
-	BoxList      = make(map[uint32]BoxData)
-	BoxIDs       = []uint32{}
-	ShopItemList = []ShopItem{}
-)
-
 func InitCSV(path string) {
 	fmt.Println("Reading game data file ...")
 	readWeaponList(path)
@@ -105,12 +54,17 @@ func readWeaponList(path string) {
 			if err != nil {
 				continue
 			}
+			itemtype, err := strconv.Atoi(record[12])
+			if err != nil {
+				continue
+			}
 			itemd := ItemData{
 				uint32(id),
 				record[1][16:],
 				record[4],
 				record[5],
 				record[6],
+				itemtype,
 			}
 
 			ItemList[itemd.ItemID] = itemd
@@ -249,6 +203,14 @@ func readBoxList(path string) {
 			if err != nil {
 				continue
 			}
+			keyid, err := strconv.Atoi(record[5])
+			if err != nil {
+				continue
+			}
+			day, err := strconv.Atoi(record[6])
+			if err != nil {
+				continue
+			}
 			//保存当前物品数据
 			if value <= 0 {
 				fmt.Println("Warning ! illeagal value", value, "for item", itemid, "in box", boxid)
@@ -258,6 +220,7 @@ func readBoxList(path string) {
 				uint32(itemid),
 				itemname,
 				value,
+				uint16(day),
 			}
 
 			if v, ok := BoxList[uint32(boxid)]; ok {
@@ -271,6 +234,8 @@ func readBoxList(path string) {
 					boxname,
 					[]BoxItem{item},
 					value,
+					uint32(keyid),
+					0,
 				}
 				BoxIDs = append(BoxIDs, uint32(boxid))
 			}
@@ -308,7 +273,7 @@ func readDefaultItemList(path string) {
 			if err != nil {
 				continue
 			}
-			item := UserInventoryItem{uint32(itemid), uint16(count)}
+			item := UserInventoryItem{uint32(itemid), uint16(count), 1, 0}
 			DefaultInventoryItem = append(DefaultInventoryItem, item)
 		} else {
 			continue
@@ -347,38 +312,28 @@ func readShopItemList(path string) {
 			if err != nil {
 				continue
 			}
-			ShopItemList = append(ShopItemList, ShopItem{uint32(itemid), uint32(price), uint8(currency)})
+			count, err := strconv.Atoi(record[3])
+			if err != nil {
+				continue
+			}
+			day, err := strconv.Atoi(record[4])
+			if err != nil {
+				continue
+			}
+
+			found := false
+			for k, _ := range ShopItemList {
+				if ShopItemList[k].ItemID == uint32(itemid) {
+					ShopItemList[k].Opt = append(ShopItemList[k].Opt, ItemOption{uint32(price), uint16(count), uint16(day)})
+					found = true
+					break
+				}
+			}
+			if !found {
+				ShopItemList = append(ShopItemList, ShopItem{uint32(itemid), uint8(currency), []ItemOption{{uint32(price), uint16(count), uint16(day)}}})
+			}
 		} else {
 			continue
 		}
 	}
 }
-
-// func InitDefaultInventoryItem() []UserInventoryItem {
-// 	items := []UserInventoryItem{}
-// 	var i uint32
-// 	//默认角色
-// 	for i = 1001; i <= 1004; i++ {
-// 		items = append(items, UserInventoryItem{i, 1})
-// 	}
-// 	//添加默认武器
-// 	number := []uint32{2, 3, 4, 6, 8, 13, 14, 15, 18, 19, 21, 23, 27, 34, 36, 37, 80, 128, 101, 49009, 49004}
-// 	for _, v := range number {
-// 		items = append(items, UserInventoryItem{v, 1})
-// 	}
-// 	for _, v := range UnlockList {
-// 		if IsIllegal(v.NextItemID) {
-// 			continue
-// 		}
-// 		items = append(items, UserInventoryItem{v.NextItemID, 1})
-// 	}
-// 	//僵尸技能
-// 	items = append(items, UserInventoryItem{2019, 1})
-// 	items = append(items, UserInventoryItem{3, 1})
-// 	items = append(items, UserInventoryItem{2020, 1})
-// 	items = append(items, UserInventoryItem{50, 1})
-// 	for i = 2021; i <= 2023; i++ {
-// 		items = append(items, UserInventoryItem{i, 1})
-// 	}
-// 	return items
-// }

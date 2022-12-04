@@ -130,6 +130,19 @@ func AddUserToDB(u *User) error {
 	return nil
 }
 
+func DelOldNickNameFile(oldName string) error {
+	//删除源文件
+	if DB == nil {
+		Dblock.Lock()
+		err := os.Remove(DBPath + oldName + ".check")
+		Dblock.Unlock()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func UpdateUserToDB(u *User) error {
 	if u == nil {
 		return nil
@@ -137,9 +150,17 @@ func UpdateUserToDB(u *User) error {
 	data, _ := json.MarshalIndent(u, "", "     ")
 	if DB == nil {
 		filepath := DBPath + u.UserName
+		filepathNickName := DBPath + u.IngameName + ".check"
+
 		Dblock.Lock()
 		err := ioutil.WriteFile(filepath, data, 0644)
+		Dblock.Unlock()
+		if err != nil {
+			return err
+		}
 
+		Dblock.Lock()
+		err = ioutil.WriteFile(filepathNickName, []byte(u.UserName), 0644)
 		Dblock.Unlock()
 		if err != nil {
 			return err
@@ -159,28 +180,6 @@ func UpdateUserToDB(u *User) error {
 
 	return nil
 }
-
-// func IsExistsMail(mail []byte) bool { //该函数已作废
-// 	if DB != nil {
-// 		query, err := DB.Prepare("SELECT * FROM userinfo WHERE UserMail = ?")
-// 		if err == nil {
-// 			defer query.Close()
-// 			Dblock.Lock()
-// 			rows, err := query.Query(mail)
-// 			Dblock.Unlock()
-// 			if err != nil {
-// 				return false
-// 			}
-// 			defer rows.Close()
-// 			if rows.Next() {
-// 				return true
-// 			}
-// 		}
-// 		//存在风险，如果出错时候其实该用户存在，那么会出现冗余
-// 		return false
-// 	}
-// 	return false
-// }
 
 func IsExistsUser(username []byte) bool {
 	if DB == nil {

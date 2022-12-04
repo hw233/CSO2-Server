@@ -8,6 +8,5 @@ import (
 )
 
 func OnAutoMatch(p *PacketData, client net.Conn) {
-	//var pkt InAutoMatchPacket
 	DebugInfo(2, "Unknown AutoMatch packet from", client.RemoteAddr().String())
 }

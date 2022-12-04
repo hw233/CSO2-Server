@@ -1,4 +1,4 @@
-version: 0.5.0-{build}
+version: 0.8.0-{build}
 pull_requests:
   do_not_increment_build_number: true
 image: Visual Studio 2015
@@ -32,29 +32,29 @@ test_script:
 
     cd ..
 
-    7z a .\CSO2-Server-0.5.0-Win64.7z .\CSO2-Server.exe
+    7z a .\CSO2-Server-0.8.0-Win64.7z .\CSO2-Server.exe
 
-    7z a .\CSO2-Server-0.5.0-Win64.7z .\local-console.bat
+    7z a .\CSO2-Server-0.8.0-Win64.7z .\local-console.bat
 
-    7z a .\CSO2-Server-0.5.0-Win64.7z .\LICENSE
+    7z a .\CSO2-Server-0.8.0-Win64.7z .\LICENSE
 
-    7z a .\CSO2-Server-0.5.0-Win64.7z .\README.md
+    7z a .\CSO2-Server-0.8.0-Win64.7z .\README.md
 
-    7z a .\CSO2-Server-0.5.0-Win64.7z .\README.en.md
+    7z a .\CSO2-Server-0.8.0-Win64.7z .\README.en.md
 
-    7z a .\CSO2-Server-0.5.0-Win64.7z .\README.tr.md
+    7z a .\CSO2-Server-0.8.0-Win64.7z .\README.tr.md
 
-    7z a .\CSO2-Server-0.5.0-Win64.7z .\CodePage.md
+    7z a .\CSO2-Server-0.8.0-Win64.7z .\CodePage.md
 
-    7z a .\CSO2-Server-0.5.0-Win64.7z CSO2-Server\configure\server.conf
+    7z a .\CSO2-Server-0.8.0-Win64.7z CSO2-Server\configure\server.conf
 
-    7z a .\CSO2-Server-0.5.0-Win64.7z CSO2-Server\database\sql\
+    7z a .\CSO2-Server-0.8.0-Win64.7z CSO2-Server\database\sql\
 
-    7z a .\CSO2-Server-0.5.0-Win64.7z CSO2-Server\assert\
+    7z a .\CSO2-Server-0.8.0-Win64.7z CSO2-Server\assert\
 
-    7z a .\CSO2-Server-0.5.0-Win64.7z CSO2-Server\locales\
+    7z a .\CSO2-Server-0.8.0-Win64.7z CSO2-Server\locales\
 
-    mv .\CSO2-Server-0.5.0-Win64.7z .\CSO2-Server\
+    mv .\CSO2-Server-0.8.0-Win64.7z .\CSO2-Server\
 
     cd .\CSO2-Server\
 artifacts:

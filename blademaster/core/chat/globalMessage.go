@@ -35,7 +35,8 @@ func OnChatGlobalMessage(p *InChatPacket, client net.Conn) {
 		return
 	}
 	//发送数据
-	if strings.Fields(string(p.Message))[2] == "/users" {
+	strs := strings.Fields(string(p.Message))
+	if len(strs) >= 3 && strs[2] == "/users" {
 		idx := 0
 		rm.RoomMutex.Lock()
 		defer rm.RoomMutex.Unlock()

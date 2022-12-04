@@ -10,7 +10,6 @@ import (
 	. "github.com/KouKouChan/CSO2-Server/blademaster/core/inventory"
 	. "github.com/KouKouChan/CSO2-Server/blademaster/core/room"
 	. "github.com/KouKouChan/CSO2-Server/blademaster/typestruct"
-	. "github.com/KouKouChan/CSO2-Server/configure"
 	. "github.com/KouKouChan/CSO2-Server/kerlong"
 	. "github.com/KouKouChan/CSO2-Server/servermanager"
 	. "github.com/KouKouChan/CSO2-Server/verbose"
@@ -66,9 +65,9 @@ func OnHostGameEnd(p *PacketData, client net.Conn) {
 				for i := 0; i < numBox; i++ {
 					boxid := GetRandomBox()
 					boxids = append(boxids, boxid)
-					v.AddItem(boxid)
+					idx := v.AddItem(boxid, 1, 0)
 					rst = BytesCombine(BuildHeader(v.CurrentSequence, PacketTypeInventory_Create),
-						BuildInventoryInfoSingle(v, boxid))
+						BuildInventoryInfoSingle(v, 0, idx))
 					SendPacket(rst, v.CurrentConnection)
 				}
 			}
@@ -140,12 +139,12 @@ func BuildGameResultHeader(rm *Room) []byte {
 		WriteUint8(&buf, rm.TrScore, &offset)    //TR winNum
 		WriteUint8(&buf, 0, &offset)             //上半场CT winNum?
 		WriteUint8(&buf, 0, &offset)             //上半场TR winNum?
-	case ModeDeathmatch, ModeTeamdeath, ModeTeamdeath_mutation:
+	case ModeDeathmatch, ModeTeamdeath, ModeTeamdeath_mutation, ModeEventmod01:
 		WriteUint8(&buf, rm.WinnerTeam, &offset) //winner team？ 0x02 ，生化模式貌似没有？
 		WriteUint32(&buf, rm.CtKillNum, &offset) //CT killnum
 		WriteUint32(&buf, rm.TrKillNum, &offset) //TR killnum
 		WriteUint64(&buf, 0, &offset)            //unk02
-	case ModeGhost:
+	case ModeGhost, ModeTag:
 		WriteUint8(&buf, 0, &offset)
 		WriteUint32(&buf, 0, &offset)
 	case ModeZombie, ModeZombiecraft, ModeZombie_commander, ModeZombie_prop, ModeZombie_zeta, ModeZ_scenario, ModeZ_scenario_side,
@@ -215,12 +214,12 @@ func BuildGameResultHeader(rm *Room) []byte {
 			switch rm.Setting.GameModeID {
 			case ModeOriginal, ModePig, ModeGiant:
 				WriteUint32(&temp, 0, &offset) //unk17
-			case ModeDeathmatch, ModeTeamdeath, ModeTeamdeath_mutation:
+			case ModeDeathmatch, ModeTeamdeath, ModeTeamdeath_mutation, ModeEventmod01:
 			case ModeStealth:
 				WriteUint16(&temp, 0, &offset) //unk17
 			case ModeZombie, ModeZombiecraft, ModeZombie_commander, ModeZombie_prop, ModeZombie_zeta, ModeZ_scenario, ModeZ_scenario_side, ModeHeroes,
 				ModeHide, ModeHide2, ModeHide_Item, ModeHide_ice, ModeHide_match, ModeHide_multi, ModeHide_origin, ModeZd_boss1,
-				ModeZd_boss2, ModeZd_boss3:
+				ModeZd_boss2, ModeZd_boss3, ModeTag:
 			default:
 				WriteUint32(&temp, 0, &offset) //unk17,貌似有时候不用
 			}
@@ -234,7 +233,7 @@ func BuildGameResultHeader(rm *Room) []byte {
 
 func GetGainExp(u *User, bot uint8) uint64 {
 	if bot == 0 {
-		exp := uint64(u.CurrentKillNum*100 + u.CurrentAssistNum*30 - u.CurrentDeathNum*50)
+		exp := uint64(u.CurrentKillNum*80 + u.CurrentAssistNum*10 - u.CurrentDeathNum*50)
 		if exp > 100 {
 			return exp
 		}
@@ -244,19 +243,19 @@ func GetGainExp(u *User, bot uint8) uint64 {
 }
 
 func GetGainPoints(u *User, bot uint8) uint64 {
-	points := uint64(u.CurrentKillNum*100 + u.CurrentAssistNum*60 - u.CurrentDeathNum*30)
+	points := uint64(u.CurrentKillNum*80 + u.CurrentAssistNum*20 - u.CurrentDeathNum*40)
 	if bot == 0 {
-		if points > 400 && points <= 15000 {
+		if points > 400 && points <= 30000 {
 			return points
-		} else if points > 15000 {
-			return 15000
+		} else if points > 30000 {
+			return 30000
 		}
 		return 400
 	}
-	if points > 400 && points <= 10000 {
+	if points > 400 && points <= 25000 {
 		return points
-	} else if points > 10000 {
-		return 10000
+	} else if points > 25000 {
+		return 25000
 	}
 	return 400
 }

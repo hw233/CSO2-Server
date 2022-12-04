@@ -66,7 +66,7 @@ func OnNewRoom(p *PacketData, client net.Conn) {
 	SendPacket(rst, uPtr.CurrentConnection)
 	DebugInfo(2, "Sent a new room packet to", uPtr.UserName)
 	//生成房间设置数据包
-	rst = BytesCombine(BuildHeader(uPtr.CurrentSequence, p.Id), BuildRoomSetting(&rm, 0XFFFFFFFFFFFFFFFF))
+	rst = BytesCombine(BuildHeader(uPtr.CurrentSequence, PacketTypeRoom), BuildRoomSetting(&rm, 0xFFFFFFFFFFFFFFFF))
 	SendPacket(rst, uPtr.CurrentConnection)
 	DebugInfo(2, "Sent a room setting packet to", uPtr.UserName)
 }
@@ -75,10 +75,10 @@ func BuildCreateAndJoin(rm *Room) []byte {
 	buf := make([]byte, 128+rm.Setting.LenOfName)
 	offset := 0
 	WriteUint32(&buf, rm.HostUserID, &offset)
-	WriteUint8(&buf, 2, &offset)
-	WriteUint8(&buf, 2, &offset)
+	WriteUint8(&buf, rm.ParentChannelServer, &offset)
+	WriteUint8(&buf, rm.ParentChannel, &offset)
 	WriteUint16(&buf, rm.Id, &offset)
-	WriteUint8(&buf, 5, &offset)
+	WriteUint8(&buf, 0, &offset)
 	// special class start?
 	WriteUint64(&buf, 0xFFFFFFFFFFFFFFFF, &offset)
 	WriteString(&buf, rm.Setting.RoomName, &offset)
@@ -171,6 +171,7 @@ func CreateRoom(pkt InNewRoomPacket, u *User) Room {
 	rm.RoomNumber = uint8(rm.Id)
 	rm.HostUserID = 0
 	rm.Users = map[uint32]*User{}
+	rm.ParentChannelServer = srv.ServerIndex
 	rm.ParentChannel = chl.ChannelID
 	rm.CountingDown = false
 	rm.Countdown = DefaultCountdownNum
@@ -217,7 +218,6 @@ func CreateRoom(pkt InNewRoomPacket, u *User) Room {
 	rm.Setting.NumTrBots = 0
 	rm.Setting.BotDifficulty = 0
 	rm.Setting.IsIngame = 0 //false = 0,true = 1
-	rm.Cache = []byte{}
 	var mutex sync.Mutex
 	rm.RoomMutex = &mutex
 	return rm

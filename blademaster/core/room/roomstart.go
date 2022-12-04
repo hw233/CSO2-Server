@@ -58,7 +58,7 @@ func OnGameStart(p *PacketData, client net.Conn) {
 		uPtr.ResetAssistNum()
 		uPtr.SetUserIngame(true)
 		//发送房间数据
-		rst := BytesCombine(BuildHeader(uPtr.CurrentSequence, PacketTypeRoom), BuildRoomSetting(rm, 0XFFFFFFFFFFFFFFFF))
+		rst := BytesCombine(BuildHeader(uPtr.CurrentSequence, PacketTypeRoom), BuildRoomSetting(rm, 0xFFFFFFFFFFFFFFFF))
 		SendPacket(rst, uPtr.CurrentConnection)
 		//给主机发送其他人的数据
 		rst = UDPBuild(host.CurrentSequence, 0, uPtr.Userid, uPtr.NetInfo.ExternalIpAddress, uPtr.NetInfo.ExternalClientPort)

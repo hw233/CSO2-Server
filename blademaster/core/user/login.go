@@ -76,19 +76,23 @@ func OnLogin(seq *uint8, dataPacket *PacketData, client net.Conn) {
 	}
 
 	//检查升级
-	if u.CheckUpdate != 1 {
-		DebugInfo(2, "Updating User", nu, "data ...")
-		//当前版本升级
-		for _, v := range DefaultInventoryItem {
-			u.AddItemSingle(v.Id)
-		}
-		u.Updated()
-		DebugInfo(2, "Updating User", nu, "data done !")
-	}
+	// if u.CheckUpdate != 1 {
+	// 	DebugInfo(2, "Updating User", nu, "data ...")
+	// 	//当前版本升级
+	// 	for _, v := range DefaultInventoryItem {
+	// 		u.AddItemSingle(v.Id, 0)
+	// 	}
+	// 	u.Updated()
+	// 	DebugInfo(2, "Updating User", nu, "data done !")
+	// }
+
 	//设置数据
 	ClearCount(clientStr)
 	u.CurrentConnection = client
 	u.CurrentSequence = seq
+	u.CheckOutdatedItem()
+	// illegalItems := u.CheckIllegalItem()
+	// DebugInfo(2, "Found", len(illegalItems), "illegal items for user", nu)
 
 	//把用户加入用户管理器
 	if !UsersManager.AddUser(u) {
@@ -102,7 +106,7 @@ func OnLogin(seq *uint8, dataPacket *PacketData, client net.Conn) {
 	DebugInfo(1, "User", u.UserName, "from", client.RemoteAddr().String(), "logged in !")
 
 	//UserInfo部分
-	rst = BytesCombine(BuildHeader(u.CurrentSequence, PacketTypeUserInfo), BuildUserInfo(0XFFFFFFFF, NewUserInfo(u), u.Userid, true))
+	rst = BytesCombine(BuildHeader(u.CurrentSequence, PacketTypeUserInfo), BuildUserInfo(0xFFFFFFFF, NewUserInfo(u), u.Userid, true))
 	SendPacket(rst, u.CurrentConnection)
 
 	//Inventory部分
@@ -131,8 +135,13 @@ func OnLogin(seq *uint8, dataPacket *PacketData, client net.Conn) {
 	//ServerList部分
 	OnServerList(u.CurrentConnection)
 
+	//event
+	rst = BytesCombine(BuildHeader(u.CurrentSequence, PacketTypeEvent), BuildEventData())
+	SendPacket(rst, u.CurrentConnection)
+
 	//motd
 	OnSendMessage(u.CurrentSequence, u.CurrentConnection, MessageNotice, Locales.MOTD)
+	OnSendMessage(u.CurrentSequence, u.CurrentConnection, MessageNotice, []byte("本游戏免费，如果你是买到的本游戏，说明你被骗了！官网：github.com/KouKouChan/CSO2-Server"))
 }
 
 //BuildUserStart 返回结构
@@ -151,4 +160,15 @@ func BuildUserStart(u *User) []byte {
 	WriteUint8(&userbuf, 1, &offset)
 	WriteUint16(&userbuf, uint16(Conf.HolePunchPort), &offset)
 	return userbuf
+}
+
+func BuildEventData() []byte {
+	buf := make([]byte, 64)
+	offset := 0
+	WriteUint8(&buf, 3, &offset)
+	WriteUint8(&buf, 1, &offset)
+	WriteUint8(&buf, 1, &offset)
+	WriteUint64(&buf, 0, &offset)
+	WriteUint8(&buf, 1, &offset)
+	return buf[:offset]
 }

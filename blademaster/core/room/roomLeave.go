@@ -65,7 +65,6 @@ func SentUserLeaveMes(uPtr *User, rm *Room) {
 	if rm.HostUserID == uPtr.Userid {
 		//选出新房主
 		for _, v := range rm.Users {
-
 			rm.SetRoomHost(v)
 
 			DebugInfo(2, "Set User", v.UserName, "id", v.Userid, "to host in room", string(rm.Setting.RoomName), "id", rm.Id)
@@ -81,7 +80,6 @@ func SentUserLeaveMes(uPtr *User, rm *Room) {
 			break
 		}
 		sethost := BuildSetHost(rm.HostUserID, 1)
-		hostrestart := BuildHostRestart(rm, true)
 
 		numInGame := 0
 		leave := BuildUserLeave(uPtr.Userid)
@@ -90,38 +88,18 @@ func SentUserLeaveMes(uPtr *User, rm *Room) {
 			if v.CurrentIsIngame {
 				numInGame++
 			}
-			//rst1 := append(BuildHeader(v.CurrentSequence, PacketTypeRoom), OUTPlayerLeave)
-			rst1 := append(BuildHeader(v.CurrentSequence, PacketTypeRoom), HostRestart)
+			rst1 := append(BuildHeader(v.CurrentSequence, PacketTypeRoom), OUTPlayerLeave)
 			rst1 = BytesCombine(rst1, leave)
+			SendPacket(rst1, v.CurrentConnection)
+
 			rst2 := append(BuildHeader(v.CurrentSequence, PacketTypeRoom), OUTSetHost)
 			rst2 = BytesCombine(rst2, sethost)
-
-			rst3 := BytesCombine(BuildHeader(v.CurrentSequence, PacketTypeHost), hostrestart)
-
-			//rst := BytesCombine(BuildHeader(v.CurrentSequence, PacketTypeHost), BuildGameData(rm.PageNum, rm.Cache))
-
-			//SendPacket(rst, v.CurrentConnection)
-			SendPacket(rst1, v.CurrentConnection)
 			SendPacket(rst2, v.CurrentConnection)
-			SendPacket(rst3, v.CurrentConnection)
-			rst3 = BytesCombine(BuildHeader(v.CurrentSequence, 0x99), BuildHostRestartTwo(uPtr.Userid))
-			SendPacket(rst3, v.CurrentConnection)
 
-			// hostu := GetUserFromID(rm.HostUserID)
-			// rst := BytesCombine(BuildHeader(hostu.CurrentSequence, PacketTypeHost), BuildGameContinue(rm.HostUserID))
-			// SendPacket(rst, hostu.CurrentConnection)
-
-			// rst = UDPBuild(hostu.CurrentSequence, 0, v.Userid, v.NetInfo.ExternalIpAddress, v.NetInfo.ExternalClientPort)
-			// SendPacket(rst, hostu.CurrentConnection)
 		}
 
 		if numInGame == 0 {
 			rm.SetStatus(StatusWaiting)
-			// setting := BuildRoomSetting(rm, 0x404000)
-			// for _, v := range rm.Users {
-			// 	rst := BytesCombine(BuildHeader(uPtr.CurrentSequence, PacketTypeRoom), setting)
-			// 	SendPacket(rst, v.CurrentConnection)
-			// }
 		}
 		DebugInfo(2, "Sent a set roomHost packet to other users")
 		return
@@ -150,43 +128,4 @@ func BuildSetHost(id uint32, isHost uint8) []byte {
 	WriteUint32(&buf, id, &offset)
 	WriteUint8(&buf, isHost, &offset)
 	return buf[:offset]
-}
-
-func BuildHostRestart(rm *Room, isHost bool) []byte {
-	buf := make([]byte, 20)
-	offset := 0
-
-	WriteUint8(&buf, HostRestart, &offset)
-	//WriteUint8(&buf, 0, &offset) //sub type , 0 = disconnected
-	WriteUint32(&buf, rm.HostUserID, &offset)
-	WriteUint8(&buf, 0, &offset)
-	WriteUint8(&buf, 0, &offset)
-	WriteUint8(&buf, rm.NumPlayers, &offset)
-	for k, _ := range rm.Users {
-		WriteUint32(&buf, k, &offset)
-	}
-	// WriteUint8(&buf, 1, &offset)
-	// WriteUint32(&buf, id, &offset)
-	return buf[:offset]
-}
-
-func BuildHostRestartTwo(id uint32) []byte {
-	buf := make([]byte, 20)
-	offset := 0
-
-	WriteUint8(&buf, HostRestart, &offset)
-	WriteUint32(&buf, id, &offset)
-	return buf[:offset]
-}
-
-func BuildGameData(pagenum uint8, data []byte) []byte {
-	buf := make([]byte, 10)
-	offset := 0
-	WriteUint8(&buf, GameContinue, &offset)
-	WriteUint8(&buf, pagenum, &offset)
-	WriteUint8(&buf, pagenum, &offset)
-	WriteUint16(&buf, uint16(len(data)), &offset)
-	WriteUint16(&buf, uint16(len(data)), &offset)
-	buf = BytesCombine(buf[:offset], data)
-	return buf
 }
