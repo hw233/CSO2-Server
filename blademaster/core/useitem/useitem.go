@@ -1,10 +1,12 @@
 package useitem
 
 import (
+	"fmt"
 	"math/rand"
 	"net"
 	"time"
 
+	"github.com/KouKouChan/CSO2-Server/blademaster/core/inventory"
 	. "github.com/KouKouChan/CSO2-Server/blademaster/core/inventory"
 	. "github.com/KouKouChan/CSO2-Server/blademaster/core/message"
 	. "github.com/KouKouChan/CSO2-Server/blademaster/typestruct"
@@ -21,6 +23,13 @@ const (
 	lotto_gold_base  = 1 //金币
 	lotto_gold_max   = 12000
 )
+
+
+// Map to store users currently using the megaphone
+var megaphoneUsers = make(map[uint32]bool)
+
+// Queue to keep track of users waiting to use the megaphone
+var megaphoneQueue []uint32
 
 func OnItemUse(p *PacketData, client net.Conn) {
 	//检索数据包
@@ -116,11 +125,74 @@ func OnItemUse(p *PacketData, client net.Conn) {
 			BuildInventoryInfoSingle(uPtr, 0, idx))
 		SendPacket(rst, uPtr.CurrentConnection)
 
+		// Check if user is already in queue
+		for _, user := range megaphoneQueue {
+			if user == uPtr.Userid {
+				rst := BytesCombine(BuildHeader(uPtr.CurrentSequence, PacketTypeUseItem), buildMegaphoneControl(1))
+				SendPacket(rst, client)
+				return
+			}
+		}
+
+		// Add user to megaphone queue
+		megaphoneQueue = append(megaphoneQueue, uPtr.Userid)
+
+		// Send megaphone control packet with countdown timer
+		rst := BytesCombine(BuildHeader(uPtr.CurrentSequence, PacketTypeUseItem), buildMegaphoneControl(uint64(len(megaphoneQueue)-1)))
+		SendPacket(rst, client)
+
+		// Wait for user's turn
+		for {
+			if megaphoneQueue[0] == uPtr.Userid {
+				break
+			}
+			time.Sleep(500 * time.Millisecond)
+		}
+
+		const (
+			Channel     = 2010 // A
+			Server      = 2011 // A
+			Global      = 2012 // A
+			GlobalEvent = 2015 // A
+		)
+
+		// Send megaphone message
+		msg := ""
+		switch itemID {
+		case 2010:
+			msg = "1" // Global Message
+		case 2011:
+			msg = "2" // Server
+		case 2012:
+			msg = "3" // Channel
+		case 2015:
+			msg = "4"
+		default:
+			fmt.Println("Invalid value")
+		}
+
+		msg = fmt.Sprintf("%s: %s", uPtr.IngameName, string(pkt.String))
+
+		// Sunucu kanal seçimi yapılmışsa, kanalda bulunan tüm oyunculara gönderilecek
+		for _, v := range UsersManager.Users {
+			if v != nil && v.GetUserChannelServerID() == v.GetUserChannelID() {
+				OnSendMessageMegaphone(v.CurrentSequence, v.CurrentConnection, MessageAnnouncement, itemID, []byte(uPtr.IngameName), pkt.String)
+			}
+		}
+		fmt.Println("Message sent:", msg)
+
+		// Remove user from megaphone queue
+		megaphoneQueue = megaphoneQueue[1:]
+
+		// Update user inventory
+		rst = BytesCombine(BuildHeader(uPtr.CurrentSequence, PacketTypeInventory_Create), inventory.BuildInventoryInfoSingle(uPtr, 0, idx))
+		SendPacket(rst, client)
+
 		//发送消息
 
-		rst = BytesCombine(BuildHeader(uPtr.CurrentSequence, PacketTypeUseItem),
-			buildMegaphone(pkt.String))
-		SendPacket(rst, uPtr.CurrentConnection)
+		//rst = BytesCombine(BuildHeader(uPtr.CurrentSequence, PacketTypeUseItem),
+		//	buildMegaphone(pkt.String))
+		//SendPacket(rst, uPtr.CurrentConnection)
 
 		DebugInfo(2, "User", uPtr.UserName, "say <", string(pkt.String), "> with item", itemID)
 	case 2011: //服务器喇叭
