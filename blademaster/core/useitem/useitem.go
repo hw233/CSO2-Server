@@ -219,6 +219,18 @@ func buildUsePoint(point uint32) []byte {
 	return buf[:offset]
 }
 
+func buildMegaphoneControl(StandbyTime uint64) []byte {
+	temp := make([]byte, 256)
+	offset := 0
+	WriteUint8(&temp, 2, &offset) // Item Type
+	WriteUint8(&temp, 6, &offset) // Item Chaet Type
+	WriteUint8(&temp, 1, &offset) //unknown
+	WriteUint8(&temp, 1, &offset)
+	//WriteString(&temp, str, &offset)
+	WriteUint64(&temp, StandbyTime, &offset) // Sıra Bekleme Süresi
+	return temp[:offset]
+}
+
 func buildNickNameChange() []byte {
 	buf := make([]byte, 25)
 	offset := 0
