@@ -433,6 +433,14 @@ type (
 		Ammount     uint16
 		TimeLimited uint16 // 1 and 0
 	}
+
+	InAchievementBackgroundPacket struct {
+		ACHType      uint8
+		SelectedCase uint8
+		Type         uint8
+		Type2        uint8
+		Type3        uint8
+	}
 )
 
 const (
@@ -516,6 +524,21 @@ func (dataPacket *PacketData) PraseLoginPacket(p *InLoginPacket) bool {
 	//p.LenOfString = ReadUint8(dataPacket.Data, &dataPacket.CurOffset)
 	//p.String = ReadString(dataPacket.Data, &dataPacket.CurOffset, int(p.LenOfString))
 	//...
+	return true
+}
+
+
+func (p *PacketData) PraseInAchievementBackgroundPacket(dest *InAchievementBackgroundPacket) bool {
+	//id + type = 2 bytes
+	if dest == nil ||
+		p.Length < 6 {
+		return false
+	}
+	dest.ACHType = ReadUint8(p.Data, &p.CurOffset)
+	dest.SelectedCase = ReadUint8(p.Data, &p.CurOffset) // value of selected background image ex: 1-2-3 v.b
+	dest.Type = ReadUint8(p.Data, &p.CurOffset)
+	dest.Type2 = ReadUint8(p.Data, &p.CurOffset)
+	dest.Type3 = ReadUint8(p.Data, &p.CurOffset)
 	return true
 }
 
