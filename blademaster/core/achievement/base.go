@@ -25,3 +25,13 @@ func OnAchievement(p *PacketData, client net.Conn) {
 		DebugInfo(2, "Error : Recived a illegal achievement packet from", client.RemoteAddr().String())
 	}
 }
+
+func BuildBackground() []byte { // lobby background feature
+	buf := make([]byte, 24)
+	offset := 0
+	WriteUint8(&buf, 5, &offset) // background
+	WriteUint8(&buf, 0, &offset) // call list idk
+	WriteUint8(&buf, 1, &offset) // IDK
+	WriteUint8(&buf, 1, &offset) // IDK
+	return buf[:offset]
+}
