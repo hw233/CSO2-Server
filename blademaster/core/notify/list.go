@@ -23,9 +23,29 @@ func OnNotifyList(p *PacketData, client net.Conn) {
 		DebugInfo(2, "Error : Client from", client.RemoteAddr().String(), "try to request notifylist but not in server !")
 		return
 	}
+
+	switch pkt.InType {
+	case 0:
+		uPtr.SetUnreadMessage(1) // just test
+
+		//发送数据
+		rst := BytesCombine(BuildHeader(uPtr.CurrentSequence, PacketTypeNotify), BuildMailList())
+		SendPacket(rst, uPtr.CurrentConnection)
+		DebugInfo(2, "Sent a null notify list to User", uPtr.UserName)
+		DebugInfo(1, "Case 0 to", pkt.InType)
+	case 1:
+		uPtr.SetUnreadMessage(2)
+		rst := BytesCombine(BuildHeader(uPtr.CurrentSequence, PacketTypeNotify), BuildMailList())
+		SendPacket(rst, uPtr.CurrentConnection)
+		DebugInfo(2, "Sent a null notify list to User", uPtr.UserName)
+		DebugInfo(1, "Case 1 to", pkt.InType)
+	default:
+		DebugInfo(1, "Case default to", pkt.InType)
+	}
 	//发送数据
 	rst := BytesCombine(BuildHeader(uPtr.CurrentSequence, PacketTypeNotify), BuildMailList())
 	SendPacket(rst, uPtr.CurrentConnection)
+	uPtr.SetUnreadMessage(3) // just test
 	DebugInfo(2, "Sent a null notify list to User", uPtr.UserName)
 
 }
