@@ -445,6 +445,7 @@ const (
 	PacketTypeRequestRoomList  = 7
 	PacketTypeRequestChannels  = 10
 	PacketTypeRoom             = 65
+	PacketTypeSafePassword        = 66
 	PacketTypeChat             = 67
 	PacketTypeHost             = 68
 	PacketTypePlayerInfo       = 69
@@ -455,6 +456,7 @@ const (
 	PacketTypeFavorite         = 77
 	PacketTypeUseItem          = 78
 	PacketTypeQuickJoin        = 80
+	PacketTypeQuickList           = 80
 	PacketTypeReport           = 83
 	PacketTypeSignature        = 85
 	PacketTypeQuickStart       = 86
@@ -474,6 +476,7 @@ const (
 	PacketTypeInventory_Add    = 152
 	PacketTypeInventory_Create = 154
 	PacketTypeUserInfo         = 157
+	PacketTypeCustom              = 254
 	//beacuse there is only 1 byte of sequence in packet , so max number is 0xff
 	MINSEQUENCE = 0
 	MAXSEQUENCE = math.MaxUint8
